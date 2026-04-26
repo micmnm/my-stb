@@ -1,9 +1,12 @@
 import type { RouteOption, Vehicle, GeocodingResult } from '../types';
 
 const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+const API_KEY = import.meta.env.VITE_API_KEY || '';
 
 async function get<T>(path: string): Promise<T> {
-  const res = await fetch(`${BASE_URL}${path}`);
+  const headers: Record<string, string> = {};
+  if (API_KEY) headers['X-Api-Key'] = API_KEY;
+  const res = await fetch(`${BASE_URL}${path}`, { headers });
   if (!res.ok) throw new Error(`API error: ${res.status}`);
   return res.json();
 }

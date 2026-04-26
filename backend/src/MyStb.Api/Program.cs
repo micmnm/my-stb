@@ -43,6 +43,25 @@ app.Use(async (ctx, next) =>
 {
     if (ctx.Request.Path.StartsWithSegments("/api"))
     {
+        var expectedKey = app.Configuration["ApiKey"];
+        if (!string.IsNullOrEmpty(expectedKey))
+        {
+            var providedKey = ctx.Request.Headers["X-Api-Key"].FirstOrDefault();
+            if (providedKey != expectedKey)
+            {
+                ctx.Response.StatusCode = 401;
+                await ctx.Response.WriteAsync("Unauthorized");
+                return;
+            }
+        }
+    }
+    await next();
+});
+
+app.Use(async (ctx, next) =>
+{
+    if (ctx.Request.Path.StartsWithSegments("/api"))
+    {
         ctx.RequestServices.GetRequiredService<VehiclePollerService>().Touch();
         await ctx.RequestServices.GetRequiredService<GtfsLoaderService>().EnsureLoadedAsync(ctx.RequestAborted);
     }
