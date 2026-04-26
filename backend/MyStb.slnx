@@ -1,0 +1,8 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/MyStb.Api/MyStb.Api.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/MyStb.Api.Tests/MyStb.Api.Tests.csproj" />
+  </Folder>
+</Solution>
