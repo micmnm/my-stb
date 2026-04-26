@@ -25,6 +25,12 @@ builder.Services.AddSingleton<IGeocodingProvider>(sp =>
     return new NominatimProvider(http, baseUrl);
 });
 
+builder.Services.AddCors(options =>
+{
+    options.AddDefaultPolicy(policy =>
+        policy.AllowAnyOrigin().AllowAnyMethod().AllowAnyHeader());
+});
+
 var app = builder.Build();
 
 using (var scope = app.Services.CreateScope())
@@ -42,6 +48,8 @@ app.Use(async (ctx, next) =>
     }
     await next();
 });
+
+app.UseCors();
 
 app.MapGet("/health", () => "ok");
 app.MapStopEndpoints();
