@@ -7,3 +7,5 @@ obj/
 *.sqlite
 .env
 .env.*
+k8s/
+.woodpecker.yml
