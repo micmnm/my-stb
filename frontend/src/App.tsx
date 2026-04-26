@@ -1,18 +1,29 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Map } from './components/Map';
 import { BottomSheet } from './components/BottomSheet';
 import { SearchBar } from './components/SearchBar';
 import { FavouriteChips } from './components/FavouriteChips';
+import { RouteResults } from './components/RouteResults';
 import { useGeolocation } from './hooks/useGeolocation';
 import { useFavourites } from './hooks/useFavourites';
+import { useRoutes } from './hooks/useRoutes';
+import { useVehicles } from './hooks/useVehicles';
 import type { RouteOption, GeocodingResult } from './types';
 import './App.css';
 
 export default function App() {
   const { position } = useGeolocation();
   const { favourites } = useFavourites();
-  const [_destination, setDestination] = useState<{ lat: number; lng: number; name: string } | null>(null);
-  const [_selectedRoute, setSelectedRoute] = useState<RouteOption | null>(null);
+  const { routes, loading: routesLoading, search: searchRoutes } = useRoutes();
+  const [destination, setDestination] = useState<{ lat: number; lng: number; name: string } | null>(null);
+  const [selectedRoute, setSelectedRoute] = useState<RouteOption | null>(null);
+  const vehicles = useVehicles(selectedRoute?.routeId ?? null);
+
+  useEffect(() => {
+    if (position && destination) {
+      searchRoutes(position.lat, position.lng, destination.lat, destination.lng);
+    }
+  }, [position, destination, searchRoutes]);
 
   const handleSearchSelect = (result: GeocodingResult) => {
     setSelectedRoute(null);
@@ -27,11 +38,17 @@ export default function App() {
   return (
     <div className="app">
       <div className="map-container">
-        <Map userPosition={position} />
+        <Map
+          userPosition={position}
+          selectedRoute={selectedRoute}
+          destination={destination}
+          vehicles={vehicles}
+        />
       </div>
       <BottomSheet>
         <SearchBar onSelect={handleSearchSelect} />
         <FavouriteChips favourites={favourites} onSelect={handleFavouriteSelect} />
+        <RouteResults routes={routes} loading={routesLoading} onSelect={setSelectedRoute} />
       </BottomSheet>
     </div>
   );
