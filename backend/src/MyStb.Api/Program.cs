@@ -14,6 +14,8 @@ builder.Services.AddScoped<IDbConnection>(_ =>
 
 builder.Services.AddHttpClient();
 builder.Services.AddSingleton<GtfsLoaderService>();
+builder.Services.AddSingleton<VehiclePollerService>();
+builder.Services.AddHostedService(sp => sp.GetRequiredService<VehiclePollerService>());
 
 var app = builder.Build();
 
@@ -22,6 +24,16 @@ using (var scope = app.Services.CreateScope())
     var db = scope.ServiceProvider.GetRequiredService<IDbConnection>();
     DbInitializer.Initialize(db);
 }
+
+app.Use(async (ctx, next) =>
+{
+    if (ctx.Request.Path.StartsWithSegments("/api"))
+    {
+        ctx.RequestServices.GetRequiredService<VehiclePollerService>().Touch();
+        await ctx.RequestServices.GetRequiredService<GtfsLoaderService>().EnsureLoadedAsync(ctx.RequestAborted);
+    }
+    await next();
+});
 
 app.MapGet("/health", () => "ok");
 
