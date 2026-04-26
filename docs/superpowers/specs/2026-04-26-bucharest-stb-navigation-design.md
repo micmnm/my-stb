@@ -11,8 +11,8 @@ A personal web app (PWA) for real-time public transit navigation in Bucharest. U
 **C# Backend** (ASP.NET minimal API + hosted worker service)
 - Deployed on user's Kubernetes cluster via Woodpecker CI
 - SQLite database for all persistent storage
-- Background worker polls mo-bi.ro every 10 seconds for live vehicle positions
-- GTFS loader downloads and parses TPBI static data weekly
+- Vehicle poller polls mo-bi.ro every 30 seconds, only while users are active (demand-driven)
+- GTFS loader downloads and parses TPBI static data on demand (when stale + user active)
 - Route calculator finds direct routes between two points
 - Geocoding proxy abstracts Nominatim (swappable provider layer)
 
@@ -39,8 +39,8 @@ A personal web app (PWA) for real-time public transit navigation in Bucharest. U
 
 ### Data Flow
 
-1. C# background worker polls `mo-bi.ro/api/busData` every 10s, upserts vehicle positions into SQLite
-2. GTFS loader downloads and parses `BUCHAREST-REGION.zip` weekly, populates routes/stops/schedules tables
+1. C# vehicle poller polls `mo-bi.ro/api/busData` every 30s (only while users are active), upserts vehicle positions into SQLite
+2. GTFS loader downloads and parses `BUCHAREST-REGION.zip` on demand (first request or when data > 7 days stale), populates routes/stops/schedules tables
 3. User opens app, browser gets GPS position
 4. User selects destination (search or favourite), frontend sends origin + destination to backend
 5. Backend finds nearby stops, identifies direct routes serving both, estimates ETAs from real-time data, returns ranked options
@@ -56,10 +56,9 @@ A personal web app (PWA) for real-time public transit navigation in Bucharest. U
 | `GET` | `/api/vehicles?routeId=` | Live vehicle positions for a specific route |
 | `GET` | `/api/stops/nearby?lat=&lng=&radius=500` | Stops within radius of a point |
 | `GET` | `/api/search?q=` | POI/address search (proxied to Nominatim) |
-| `GET` | `/api/favourites` | List saved destinations |
-| `POST` | `/api/favourites` | Add a favourite (body: `{name, lat, lng}`) |
-| `PUT` | `/api/favourites/{id}` | Update a favourite |
-| `DELETE` | `/api/favourites/{id}` | Remove a favourite |
+
+
+*Favourites are stored in browser localStorage — no backend endpoints needed.*
 
 ### Route Calculation Logic
 
@@ -110,12 +109,7 @@ A personal web app (PWA) for real-time public transit navigation in Bucharest. U
 - `timestamp` INTEGER
 - `updated_at` INTEGER
 
-**favourites**
-- `id` INTEGER PRIMARY KEY AUTOINCREMENT
-- `name` TEXT
-- `lat` REAL
-- `lng` REAL
-- `created_at` TEXT
+*Favourites are stored in browser localStorage, not in the backend database.*
 
 ## Frontend
 
