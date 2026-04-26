@@ -1,6 +1,7 @@
 using System.Data;
 using Microsoft.Data.Sqlite;
 using MyStb.Api.Database;
+using MyStb.Api.Endpoints;
 using MyStb.Api.Services;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -36,5 +37,6 @@ app.Use(async (ctx, next) =>
 });
 
 app.MapGet("/health", () => "ok");
+app.MapStopEndpoints();
 
 app.Run();
