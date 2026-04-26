@@ -1,0 +1,9 @@
+.superpowers/
+node_modules/
+dist/
+bin/
+obj/
+*.db
+*.sqlite
+.env
+.env.*
