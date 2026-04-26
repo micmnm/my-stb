@@ -1,0 +1,39 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: my-stb
+  namespace: mltru-com
+  annotations:
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+spec:
+  ingressClassName: nginx
+  tls:
+    - hosts:
+        - mystb.mltru.com
+      secretName: my-stb-tls
+  rules:
+    - host: mystb.mltru.com
+      http:
+        paths:
+          - path: /api
+            pathType: Prefix
+            backend:
+              service:
+                name: my-stb-api
+                port:
+                  number: 8080
+          - path: /healthz-api
+            pathType: Exact
+            backend:
+              service:
+                name: my-stb-api
+                port:
+                  number: 8080
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: my-stb-front
+                port:
+                  number: 80

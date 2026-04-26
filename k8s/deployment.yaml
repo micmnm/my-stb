@@ -1,0 +1,106 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: my-stb-api
+  namespace: mltru-com
+spec:
+  replicas: 1
+  revisionHistoryLimit: 2
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: my-stb-api
+  template:
+    metadata:
+      labels:
+        app: my-stb-api
+    spec:
+      imagePullSecrets:
+        - name: registry-credentials
+      containers:
+        - name: my-stb-api
+          image: registry.dala-triceratops.ts.net/my-stb-api:latest
+          ports:
+            - name: http
+              containerPort: 8080
+          env:
+            - name: ConnectionStrings__Sqlite
+              value: "Data Source=/data/mystb.db"
+            - name: ApiKey
+              valueFrom:
+                secretKeyRef:
+                  name: my-stb-secrets
+                  key: api-key
+            - name: Cors__Origins__0
+              value: "https://mystb.mltru.com"
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: http
+            initialDelaySeconds: 15
+            periodSeconds: 30
+          resources:
+            requests:
+              cpu: 50m
+              memory: 128Mi
+            limits:
+              cpu: 200m
+              memory: 256Mi
+          volumeMounts:
+            - name: data
+              mountPath: /data
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: my-stb-data
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: my-stb-front
+  namespace: mltru-com
+spec:
+  replicas: 1
+  revisionHistoryLimit: 2
+  selector:
+    matchLabels:
+      app: my-stb-front
+  template:
+    metadata:
+      labels:
+        app: my-stb-front
+    spec:
+      imagePullSecrets:
+        - name: registry-credentials
+      containers:
+        - name: my-stb-front
+          image: registry.dala-triceratops.ts.net/my-stb-front:latest
+          ports:
+            - name: http
+              containerPort: 80
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: http
+            initialDelaySeconds: 2
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 30
+          resources:
+            requests:
+              cpu: 10m
+              memory: 16Mi
+            limits:
+              cpu: 50m
+              memory: 32Mi

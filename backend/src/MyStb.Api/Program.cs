@@ -70,7 +70,7 @@ app.Use(async (ctx, next) =>
 
 app.UseCors();
 
-app.MapGet("/health", () => "ok");
+app.MapGet("/healthz", () => "ok");
 app.MapStopEndpoints();
 app.MapRouteEndpoints();
 app.MapVehicleEndpoints();

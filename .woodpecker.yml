@@ -1,0 +1,75 @@
+when:
+  branch: [main, master]
+  event: [push, manual]
+
+steps:
+  - name: frontend-check
+    image: node:24-alpine
+    commands:
+      - cd frontend
+      - npm ci
+      - npm run build
+
+  - name: backend-check
+    image: mcr.microsoft.com/dotnet/sdk:10.0
+    commands:
+      - cd backend
+      - dotnet build src/MyStb.Api/MyStb.Api.csproj
+      - dotnet test tests/MyStb.Api.Tests/MyStb.Api.Tests.csproj
+
+  - name: docker-api
+    image: docker:24
+    depends_on: [frontend-check, backend-check]
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    environment:
+      DOCKER_REGISTRY:
+        from_secret: docker_registry
+      DOCKER_USER:
+        from_secret: docker_registry_user
+      DOCKER_PASSWORD:
+        from_secret: docker_registry_password
+    commands:
+      - TAG=$(date +%Y%m%d)-${CI_PIPELINE_NUMBER}
+      - echo "$DOCKER_PASSWORD" | docker login "$DOCKER_REGISTRY" -u "$DOCKER_USER" --password-stdin
+      - docker build -t $DOCKER_REGISTRY/my-stb-api:$TAG -t $DOCKER_REGISTRY/my-stb-api:latest -f backend/Dockerfile backend/
+      - docker push $DOCKER_REGISTRY/my-stb-api:$TAG
+      - docker push $DOCKER_REGISTRY/my-stb-api:latest
+
+  - name: docker-frontend
+    image: docker:24
+    depends_on: [frontend-check, backend-check]
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    environment:
+      DOCKER_REGISTRY:
+        from_secret: docker_registry
+      DOCKER_USER:
+        from_secret: docker_registry_user
+      DOCKER_PASSWORD:
+        from_secret: docker_registry_password
+    commands:
+      - TAG=$(date +%Y%m%d)-${CI_PIPELINE_NUMBER}
+      - echo "$DOCKER_PASSWORD" | docker login "$DOCKER_REGISTRY" -u "$DOCKER_USER" --password-stdin
+      - docker build -t $DOCKER_REGISTRY/my-stb-front:$TAG -t $DOCKER_REGISTRY/my-stb-front:latest -f frontend/Dockerfile frontend/
+      - docker push $DOCKER_REGISTRY/my-stb-front:$TAG
+      - docker push $DOCKER_REGISTRY/my-stb-front:latest
+
+  - name: deploy
+    image: alpine/k8s:1.29.0
+    depends_on: [docker-api, docker-frontend]
+    environment:
+      DOCKER_REGISTRY:
+        from_secret: docker_registry
+      KUBECONFIG_CONTENT:
+        from_secret: kubeconfig
+    commands:
+      - TAG=$(date +%Y%m%d)-${CI_PIPELINE_NUMBER}
+      - mkdir -p ~/.kube
+      - echo "$KUBECONFIG_CONTENT" > ~/.kube/config
+      - chmod 600 ~/.kube/config
+      - kubectl apply -f k8s/ -n mltru-com
+      - kubectl set image deployment/my-stb-api my-stb-api=$DOCKER_REGISTRY/my-stb-api:$TAG -n mltru-com
+      - kubectl set image deployment/my-stb-front my-stb-front=$DOCKER_REGISTRY/my-stb-front:$TAG -n mltru-com
+      - kubectl rollout status deployment/my-stb-api -n mltru-com --timeout=120s
+      - kubectl rollout status deployment/my-stb-front -n mltru-com --timeout=120s
