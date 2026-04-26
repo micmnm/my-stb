@@ -70,7 +70,6 @@ steps:
       - mkdir -p ~/.kube
       - echo "$KUBECONFIG_CONTENT" > ~/.kube/config
       - chmod 600 ~/.kube/config
-      - kubectl apply -f k8s/ -n mltru-com
       - kubectl set image deployment/my-stb-api my-stb-api=$DOCKER_REGISTRY/my-stb-api:$TAG -n mltru-com
       - kubectl set image deployment/my-stb-front my-stb-front=$DOCKER_REGISTRY/my-stb-front:$TAG -n mltru-com
       - kubectl rollout status deployment/my-stb-api -n mltru-com --timeout=120s
