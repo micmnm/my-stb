@@ -18,6 +18,13 @@ builder.Services.AddSingleton<GtfsLoaderService>();
 builder.Services.AddSingleton<VehiclePollerService>();
 builder.Services.AddHostedService(sp => sp.GetRequiredService<VehiclePollerService>());
 
+builder.Services.AddSingleton<IGeocodingProvider>(sp =>
+{
+    var http = sp.GetRequiredService<IHttpClientFactory>().CreateClient();
+    var baseUrl = builder.Configuration["Geocoding:NominatimBaseUrl"]!;
+    return new NominatimProvider(http, baseUrl);
+});
+
 var app = builder.Build();
 
 using (var scope = app.Services.CreateScope())
@@ -40,5 +47,6 @@ app.MapGet("/health", () => "ok");
 app.MapStopEndpoints();
 app.MapRouteEndpoints();
 app.MapVehicleEndpoints();
+app.MapSearchEndpoints();
 
 app.Run();
