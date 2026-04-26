@@ -1,6 +1,7 @@
 using System.Data;
 using Microsoft.Data.Sqlite;
 using MyStb.Api.Database;
+using MyStb.Api.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -10,6 +11,9 @@ builder.Services.AddScoped<IDbConnection>(_ =>
     conn.Open();
     return conn;
 });
+
+builder.Services.AddHttpClient();
+builder.Services.AddSingleton<GtfsLoaderService>();
 
 var app = builder.Build();
 
