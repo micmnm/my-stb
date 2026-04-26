@@ -38,5 +38,7 @@ app.Use(async (ctx, next) =>
 
 app.MapGet("/health", () => "ok");
 app.MapStopEndpoints();
+app.MapRouteEndpoints();
+app.MapVehicleEndpoints();
 
 app.Run();
