@@ -1,42 +1,20 @@
 import { NavLink } from 'react-router-dom';
 import { useT } from '../../i18n/useT';
+import { IconBookmark, IconHome, IconRoute, IconSearch } from '../icons';
 
-type TabIcon = (props: { active: boolean }) => React.ReactElement;
+interface TabIconProps { active: boolean }
+type TabIcon = (props: TabIconProps) => React.ReactElement;
 
-const HomeIcon: TabIcon = () => (
-  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-    <path d="M3 11.5 12 4l9 7.5" />
-    <path d="M5 10v10h14V10" />
-  </svg>
-);
-
-const SearchIcon: TabIcon = () => (
-  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-    <circle cx="11" cy="11" r="7" />
-    <path d="m20 20-3.5-3.5" />
-  </svg>
-);
-
-const PlanIcon: TabIcon = () => (
-  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-    <path d="M4 7h12" />
-    <path d="m13 4 3 3-3 3" />
-    <path d="M20 17H8" />
-    <path d="m11 20-3-3 3-3" />
-  </svg>
-);
-
-const SavedIcon: TabIcon = () => (
-  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-    <path d="M6 4h12v17l-6-4-6 4z" />
-  </svg>
-);
+const HomeTabIcon: TabIcon = ({ active }) => <IconHome size={22} filled={active} />;
+const SearchTabIcon: TabIcon = () => <IconSearch size={22} />;
+const PlanTabIcon: TabIcon = () => <IconRoute size={22} />;
+const SavedTabIcon: TabIcon = ({ active }) => <IconBookmark size={22} filled={active} />;
 
 const tabs: Array<{ to: string; key: string; Icon: TabIcon; end?: boolean }> = [
-  { to: '/', key: 'nav.home', Icon: HomeIcon, end: true },
-  { to: '/search', key: 'nav.search', Icon: SearchIcon },
-  { to: '/plan', key: 'nav.plan', Icon: PlanIcon },
-  { to: '/saved', key: 'nav.saved', Icon: SavedIcon },
+  { to: '/', key: 'nav.home', Icon: HomeTabIcon, end: true },
+  { to: '/search', key: 'nav.search', Icon: SearchTabIcon },
+  { to: '/plan', key: 'nav.plan', Icon: PlanTabIcon },
+  { to: '/saved', key: 'nav.saved', Icon: SavedTabIcon },
 ];
 
 export function BottomNav() {

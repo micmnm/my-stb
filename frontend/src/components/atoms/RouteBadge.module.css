@@ -1,0 +1,30 @@
+.badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-mono);
+  font-weight: var(--fw-semibold);
+  letter-spacing: 0;
+  border-radius: var(--r-sm);
+  white-space: nowrap;
+  line-height: 1;
+}
+
+.sm {
+  height: 22px;
+  padding: 0 8px;
+  font-size: var(--fs-xs);
+}
+
+.md {
+  height: 28px;
+  padding: 0 10px;
+  font-size: var(--fs-sm);
+}
+
+.lg {
+  height: 36px;
+  padding: 0 12px;
+  font-size: var(--fs-base);
+  border-radius: var(--r-md);
+}

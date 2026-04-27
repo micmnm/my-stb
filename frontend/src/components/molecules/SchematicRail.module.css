@@ -1,0 +1,13 @@
+.rail {
+  position: relative;
+  padding-left: var(--s-4);
+}
+
+.line {
+  position: absolute;
+  top: 18px;
+  bottom: 18px;
+  left: calc(var(--s-4) + 10px);
+  width: 2px;
+  background: var(--fg-1);
+}

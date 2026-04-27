@@ -1,0 +1,43 @@
+.skeleton {
+  display: block;
+  background: linear-gradient(
+    90deg,
+    var(--neutral-100) 0%,
+    var(--neutral-50) 50%,
+    var(--neutral-100) 100%
+  );
+  background-size: 200% 100%;
+  animation: skeleton-shimmer 1.4s linear infinite;
+  border-radius: var(--r-xs);
+}
+
+:global(:root[data-theme="dark"]) .skeleton {
+  background: linear-gradient(
+    90deg,
+    var(--tunnel-2) 0%,
+    var(--tunnel-3) 50%,
+    var(--tunnel-2) 100%
+  );
+  background-size: 200% 100%;
+}
+
+@media (prefers-color-scheme: dark) {
+  :global(:root:not([data-theme])) .skeleton {
+    background: linear-gradient(
+      90deg,
+      var(--tunnel-2) 0%,
+      var(--tunnel-3) 50%,
+      var(--tunnel-2) 100%
+    );
+    background-size: 200% 100%;
+  }
+}
+
+@keyframes skeleton-shimmer {
+  0%   { background-position: 100% 50%; }
+  100% { background-position: -100% 50%; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .skeleton { animation: none; }
+}

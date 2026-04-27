@@ -1,0 +1,65 @@
+.row {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: var(--s-3);
+  padding: var(--s-2) var(--s-4) var(--s-2) 0;
+  min-height: 36px;
+}
+
+.dotWrap {
+  position: relative;
+  width: 22px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.dot {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--bg);
+  border: 2px solid var(--fg-1);
+  box-sizing: border-box;
+}
+
+.dotPassed { background: var(--neutral-300); border-color: var(--neutral-300); }
+.dotYou    { width: 18px; height: 18px; border-color: var(--stb-red); border-width: 3px; }
+
+.text {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.name {
+  font-family: var(--font-sans);
+  font-weight: var(--fw-medium);
+  font-size: var(--fs-base);
+  color: var(--fg-1);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.nameYou { font-weight: var(--fw-bold); }
+
+.sub {
+  font-size: var(--fs-xs);
+  color: var(--fg-3);
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-wide);
+}
+
+.eta {
+  font-family: var(--font-display);
+  font-weight: var(--fw-semibold);
+  font-size: var(--fs-md);
+  color: var(--fg-1);
+  font-variant-numeric: tabular-nums;
+  flex-shrink: 0;
+}

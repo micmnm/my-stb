@@ -1,0 +1,96 @@
+.row {
+  display: flex;
+  align-items: stretch;
+  gap: var(--s-3);
+  padding: var(--s-3) var(--s-4);
+  width: 100%;
+  background: transparent;
+  border: 2px solid transparent;
+  border-radius: var(--r-md);
+  color: var(--fg-1);
+  cursor: pointer;
+  text-align: left;
+  font: inherit;
+  min-height: 64px;
+}
+
+.row:hover { background: var(--hover-tint); }
+.row:active { background: var(--press-tint); }
+
+.expanded {
+  border-color: var(--stb-red);
+  background: var(--bg-elev);
+}
+
+.badge {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.dirGroup {
+  flex: 1;
+  display: grid;
+  grid-template-columns: 1fr 1px 1fr;
+  gap: var(--s-3);
+  align-items: center;
+}
+
+.dir {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.dirHeader {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: var(--fs-xs);
+  color: var(--fg-2);
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-wide);
+}
+
+.dirTo {
+  font-size: var(--fs-sm);
+  color: var(--fg-1);
+  font-weight: var(--fw-medium);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.eta {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 4px;
+  font-size: var(--fs-lg);
+  font-weight: var(--fw-bold);
+  font-family: var(--font-display);
+  color: var(--stb-red);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
+}
+
+.etaUnit {
+  font-size: var(--fs-xs);
+  font-weight: var(--fw-medium);
+  color: var(--fg-2);
+  letter-spacing: 0;
+}
+
+.etaNotLive { color: var(--fg-1); }
+.etaStale   { color: var(--fg-3); }
+
+.terminus {
+  font-size: var(--fs-lg);
+  color: var(--fg-3);
+}
+
+.divider {
+  width: 1px;
+  background: var(--border);
+  align-self: stretch;
+}

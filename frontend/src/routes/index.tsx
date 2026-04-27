@@ -6,6 +6,7 @@ import SavedPage from '../pages/saved';
 import StopDetailPage from '../pages/stop-detail';
 import RouteDetailPage from '../pages/route-detail';
 import LegacyApp from '../pages/legacy/LegacyApp';
+import DevComponentsPage from '../pages/dev-components';
 import '../components/layout/layout.css';
 
 export function AppRoutes() {
@@ -19,6 +20,9 @@ export function AppRoutes() {
         <Route path="/stop/:id" element={<StopDetailPage />} />
         <Route path="/route/:id" element={<RouteDetailPage />} />
         <Route path="/legacy" element={<LegacyApp />} />
+        {import.meta.env.DEV && (
+          <Route path="/dev/components" element={<DevComponentsPage />} />
+        )}
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </BrowserRouter>

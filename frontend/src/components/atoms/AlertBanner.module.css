@@ -1,0 +1,79 @@
+.banner {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--s-3);
+  padding: var(--s-3) var(--s-4);
+  border-radius: var(--r-md);
+  border: 1px solid transparent;
+  font-family: var(--font-sans);
+  text-decoration: none;
+  color: inherit;
+  width: 100%;
+  text-align: left;
+}
+
+.info     { background: var(--info-soft);        border-color: color-mix(in srgb, var(--info) 35%, transparent); color: var(--fg-1); }
+.warning  { background: var(--tram-yellow-soft); border-color: color-mix(in srgb, var(--warning) 35%, transparent); color: var(--fg-1); }
+.critical { background: var(--danger-soft);      border-color: color-mix(in srgb, var(--danger) 40%, transparent); color: var(--fg-1); }
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  font-family: var(--font-display);
+  font-weight: var(--fw-bold);
+  font-size: var(--fs-sm);
+  line-height: 1;
+  color: #fff;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.chipInfo     { background: var(--info); }
+.chipWarning  { background: var(--warning); }
+.chipCritical { background: var(--danger); }
+
+.body {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.title {
+  font-weight: var(--fw-semibold);
+  font-size: var(--fs-base);
+  line-height: var(--lh-snug);
+  margin: 0;
+}
+
+.bodyText {
+  font-size: var(--fs-sm);
+  line-height: var(--lh-normal);
+  color: var(--fg-2);
+  margin: 0;
+}
+
+.action {
+  display: inline-flex;
+  align-items: center;
+  color: var(--fg-2);
+  flex-shrink: 0;
+  margin-top: 4px;
+}
+
+.dismiss {
+  appearance: none;
+  background: transparent;
+  border: none;
+  padding: 4px;
+  margin: -4px;
+  cursor: pointer;
+  color: var(--fg-2);
+  border-radius: var(--r-xs);
+  flex-shrink: 0;
+}
