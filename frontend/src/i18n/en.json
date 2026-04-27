@@ -1,0 +1,52 @@
+{
+  "nav.home": "Home",
+  "nav.search": "Search",
+  "nav.plan": "Plan",
+  "nav.saved": "Saved",
+
+  "home.greeting": "Hello",
+  "home.saved_section": "Your stops",
+  "home.nearby_section": "Nearby",
+  "home.empty_saved": "Save the stops you use most.",
+
+  "search.placeholder": "Search a stop, line, or address",
+  "search.recent": "Recent",
+  "search.no_results": "No results",
+
+  "stop_detail.arrivals": "Arrivals",
+  "stop_detail.both_dirs": "both directions",
+  "stop_detail.live": "live",
+  "stop_detail.walk_chip": "{m} min walk · {d} m",
+  "stop_detail.see_line": "See full line",
+  "stop_detail.following": "Following",
+  "stop_detail.no_arrivals": "No arrivals in the next hour.",
+  "stop_detail.stale_label": "Stale data",
+
+  "route_detail.vehicles_count": "{n,plural,one{# vehicle}other{# vehicles}}",
+  "route_detail.reverse": "Reverse",
+  "route_detail.your_stop": "Your stop",
+  "route_detail.terminus": "Terminus",
+
+  "alert.service_alert": "Service alert",
+  "alert.until": "until {time}",
+  "alert.more": "+ {n} more",
+
+  "plan.from": "From",
+  "plan.to": "To",
+  "plan.when.now": "Now",
+  "plan.when.leave_at": "Leave at",
+  "plan.when.arrive_by": "Arrive by",
+  "plan.no_routes": "No routes found. Try a different time.",
+
+  "saved.empty": "Add stops or lines for quick access.",
+  "saved.add": "Add",
+  "saved.edit": "Edit",
+  "saved.nickname": "Nickname",
+  "saved.reorder": "Reorder",
+
+  "errors.offline": "Offline. Showing last known data.",
+  "errors.retry": "Retry",
+  "errors.feed_down": "STB isn't responding. Retrying automatically.",
+
+  "permissions.location_denied": "Turn on location to see nearby stops."
+}

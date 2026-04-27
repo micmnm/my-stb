@@ -1,0 +1,52 @@
+{
+  "nav.home": "Acasă",
+  "nav.search": "Caută",
+  "nav.plan": "Plan",
+  "nav.saved": "Salvate",
+
+  "home.greeting": "Bună",
+  "home.saved_section": "Stațiile tale",
+  "home.nearby_section": "În apropiere",
+  "home.empty_saved": "Salvează stațiile pe care le folosești des.",
+
+  "search.placeholder": "Caută o stație, linie sau adresă",
+  "search.recent": "Recente",
+  "search.no_results": "Niciun rezultat",
+
+  "stop_detail.arrivals": "Sosiri",
+  "stop_detail.both_dirs": "ambele direcții",
+  "stop_detail.live": "în direct",
+  "stop_detail.walk_chip": "{m} min pe jos · {d} m",
+  "stop_detail.see_line": "Vezi linia",
+  "stop_detail.following": "Următoarele",
+  "stop_detail.no_arrivals": "Nicio sosire în ora următoare.",
+  "stop_detail.stale_label": "Date vechi",
+
+  "route_detail.vehicles_count": "{n,plural,one{# vehicul}other{# vehicule}}",
+  "route_detail.reverse": "Inversează",
+  "route_detail.your_stop": "Stația ta",
+  "route_detail.terminus": "Terminus",
+
+  "alert.service_alert": "Alertă de serviciu",
+  "alert.until": "până {time}",
+  "alert.more": "+ {n} alte",
+
+  "plan.from": "De la",
+  "plan.to": "Către",
+  "plan.when.now": "Acum",
+  "plan.when.leave_at": "Plecare la",
+  "plan.when.arrive_by": "Sosire până",
+  "plan.no_routes": "Nu am găsit rute. Încearcă o oră diferită.",
+
+  "saved.empty": "Adaugă stații sau linii pentru acces rapid.",
+  "saved.add": "Adaugă",
+  "saved.edit": "Editează",
+  "saved.nickname": "Poreclă",
+  "saved.reorder": "Reordonează",
+
+  "errors.offline": "Fără conexiune. Afișăm ultimele date cunoscute.",
+  "errors.retry": "Reîncearcă",
+  "errors.feed_down": "STB nu răspunde. Reîncercăm automat.",
+
+  "permissions.location_denied": "Activează locația pentru a vedea stațiile din apropiere."
+}
