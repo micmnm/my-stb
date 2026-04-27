@@ -1,0 +1,136 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<title>MyStb · Stop detail decisions</title>
+<link rel="stylesheet" href="../colors_and_type.css"/>
+<style>
+  html, body { margin: 0; padding: 0; background: #f0eee9; }
+  body { font-family: -apple-system, system-ui, sans-serif; color: #1a1f2e; }
+  .page { max-width: 1200px; margin: 0 auto; padding: 48px 32px 120px; }
+  h1 { font-family: 'Bricolage Grotesque', system-ui; font-weight: 700; letter-spacing: -1.5px; font-size: 40px; margin: 0 0 8px; }
+  h1 .sub { font-weight: 400; color: #6b7185; font-size: 18px; letter-spacing: 0; }
+  h2 { font-family: 'Bricolage Grotesque', system-ui; font-weight: 700; letter-spacing: -0.6px; font-size: 26px; margin: 56px 0 4px; }
+  h2 .meta { font-family: 'JetBrains Mono', monospace; font-weight: 600; font-size: 12px; color: #6b7185; letter-spacing: 1px; margin-left: 12px; text-transform: uppercase; }
+  .qsub { color: #6b7185; font-size: 15px; margin: 0 0 24px; max-width: 760px; line-height: 1.5; }
+  .opts { display: grid; grid-template-columns: repeat(auto-fit, minmax(420px, 1fr)); gap: 24px; }
+  .opt { background: rgba(255,255,255,0.4); border-radius: 20px; padding: 20px; }
+  .opt h3 { font-family: 'Bricolage Grotesque', system-ui; font-size: 20px; font-weight: 700; margin: 0 0 4px; letter-spacing: -0.4px; }
+  .opt .h3sub { color: #6b7185; font-size: 13px; margin-bottom: 16px; line-height: 1.5; }
+  .opt .pros, .opt .cons { font-size: 13px; line-height: 1.55; margin-top: 12px; }
+  .opt .pros::before { content: '+ '; color: #1a8a4a; font-weight: 700; }
+  .opt .cons::before { content: '− '; color: #d4310f; font-weight: 700; }
+  .phones { display: flex; gap: 16px; justify-content: center; }
+  .chosen { border: 2px solid #d4310f; }
+  .chosen-tag { display: inline-block; background: #d4310f; color: #fff; font-family: 'JetBrains Mono', monospace; font-size: 10px; padding: 3px 8px; border-radius: 999px; letter-spacing: 1px; font-weight: 700; margin-left: 8px; vertical-align: middle; }
+</style>
+</head>
+<body>
+<div id="root"></div>
+
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+
+<script type="text/babel" src="ios-frame.jsx"></script>
+<script type="text/babel" src="atoms.jsx"></script>
+<script type="text/babel" src="stop-decisions.jsx"></script>
+
+<script type="text/babel">
+const Phones = ({ Comp }) => (
+  <div className="phones">
+    <IOSDevice width={402} height={874} dark={false}><Comp dark={false}/></IOSDevice>
+    <IOSDevice width={402} height={874} dark={true }><Comp dark={true }/></IOSDevice>
+  </div>
+);
+
+const Opt = ({ chosen, title, sub, pros, cons, Comp }) => (
+  <div className={`opt ${chosen ? 'chosen' : ''}`}>
+    <h3>{title}{chosen && <span className="chosen-tag">Chosen</span>}</h3>
+    <div className="h3sub">{sub}</div>
+    <Phones Comp={Comp}/>
+    {pros && <div className="pros">{pros}</div>}
+    {cons && <div className="cons">{cons}</div>}
+  </div>
+);
+
+const App = () => (
+  <div className="page">
+    <h1>Stop detail · decisions <div className="sub">9 questions, side-by-side mocks. Scroll vertically.</div></h1>
+
+    {/* Q1 */}
+    <h2>Q1 — Sort order <span className="meta">Decided · A</span></h2>
+    <p className="qsub">Which order do arrivals appear in on a stop with multiple lines passing through?</p>
+    <div className="opts" style={{gridTemplateColumns:'1fr'}}>
+      <Opt chosen={true} title="A · ETA order"
+        sub="Soonest first. Single flat list of every line."
+        Comp={Q1A}/>
+    </div>
+
+    {/* Q2 */}
+    <h2>Q2 — Direction handling <span className="meta">Decided · B</span></h2>
+    <p className="qsub">Both-directions-per-row chosen.</p>
+    <div className="opts" style={{gridTemplateColumns:'1fr'}}>
+      <Opt chosen={true} title="B · Both directions per row"
+        sub="Each line is one card with two ETAs side-by-side. Nothing hidden."
+        Comp={Q2B}/>
+    </div>
+
+    {/* Q3 */}
+    <h2>Q3 — Tap a row, what happens? <span className="meta">Decided · B</span></h2>
+    <p className="qsub">Inline expand chosen. Stays in stop context.</p>
+    <div className="opts" style={{gridTemplateColumns:'1fr'}}>
+      <Opt chosen={true} title="B · Inline expand"
+        sub="Row blooms open in place: more departures, vehicle on mini-map, CTAs."
+        Comp={Q3B}/>
+    </div>
+
+    {/* Q4 — skipped */}
+    <h2>Q4 — Notifications <span className="meta">Skipped</span></h2>
+    <p className="qsub">No notification affordances for now. Revisit later.</p>
+
+    {/* Q5 */}
+    <h2>Q5 — Walk time / distance <span className="meta">Decided · B</span></h2>
+    <p className="qsub">Walk time + distance.</p>
+    <div className="opts" style={{gridTemplateColumns:'1fr'}}>
+      <Opt chosen={true} title="B · 2 min walk · 120 m"
+        sub="Time first (bold), distance secondary, walking icon."
+        Comp={Q5B}/>
+    </div>
+
+    <h2 style={{paddingTop: 16, borderTop: '1px solid rgba(0,0,0,0.08)'}}>Route detail decisions</h2>
+
+    {/* Q6 */}
+    <h2>Q6 — Direction switcher <span className="meta">Decided · B</span></h2>
+    <p className="qsub">Compact reverse pill.</p>
+    <div className="opts" style={{gridTemplateColumns:'1fr'}}>
+      <Opt chosen={true} title="B · Reverse pill" sub="Single direction; small swap pill flips it." Comp={Q6B}/>
+    </div>
+
+    {/* Q7 */}
+    <h2>Q7 — Multi-vehicle display <span className="meta">Decided · B</span></h2>
+    <p className="qsub">All vehicles shown with ETA labels.</p>
+    <div className="opts" style={{gridTemplateColumns:'1fr'}}>
+      <Opt chosen={true} title="B · All vehicles" sub="Every active tram visible with ETA-to-your-stop." Comp={Q7B}/>
+    </div>
+
+    {/* Q8 */}
+    <h2>Q8 — Schedule view <span className="meta">Decided · A · drop</span></h2>
+    <p className="qsub">No schedule. Live arrivals only.</p>
+
+    {/* Q9 */}
+    <h2>Q9 — Service alerts placement <span className="meta">Decided · A</span></h2>
+    <p className="qsub">Top banner.</p>
+    <div className="opts" style={{gridTemplateColumns:'1fr'}}>
+      <Opt chosen={true} title="A · Top banner" sub="Always-visible yellow alert above the schematic." Comp={Q9A}/>
+    </div>
+
+    <h2 style={{paddingTop: 16, borderTop: '1px solid rgba(0,0,0,0.08)'}}>All decisions ✓</h2>
+    <p className="qsub">Folded into the main App screens canvas.</p>
+  </div>
+);
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+</script>
+</body>
+</html>

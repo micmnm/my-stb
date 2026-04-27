@@ -1,0 +1,266 @@
+/* ============================================================
+   MyStb Design System — Tokens
+   Import this in any artifact: <link rel="stylesheet" href="colors_and_type.css">
+   ============================================================ */
+
+/* ---- Web fonts ---- */
+/* Bricolage Grotesque: local variable file (provided by brand) */
+@font-face {
+  font-family: 'Bricolage Grotesque';
+  src: url('fonts/BricolageGrotesque-VariableFont_opsz_wdth_wght.ttf') format('truetype-variations'),
+       url('fonts/BricolageGrotesque-VariableFont_opsz_wdth_wght.ttf') format('truetype');
+  font-weight: 200 800;
+  font-stretch: 75% 100%;
+  font-style: normal;
+  font-display: swap;
+}
+/* Space Grotesk + JetBrains Mono: Google Fonts substitutes (no proprietary files provided) */
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap');
+
+:root {
+  /* ============ COLOR ============ */
+
+  /* Brand */
+  --stb-red:          #E63027;
+  --stb-red-dark:     #B91D15;
+  --stb-red-darker:   #7A0F0A;
+  --stb-red-soft:     #FAD9D6;
+
+  --tunnel:           #1A1F2E;   /* deep ink */
+  --tunnel-2:         #2A3142;
+  --tunnel-3:         #3D4558;
+
+  --cream:            #F4ECE0;   /* primary app surface */
+  --cream-2:          #FBF7F0;   /* card surface */
+  --cream-3:          #EADFCF;   /* slight elevation down */
+
+  --tram-yellow:      #F5C518;   /* live / now accent */
+  --tram-yellow-soft: #FBEAB0;
+
+  /* Line-mode colors (for vehicles/routes) */
+  --line-tram:        #E63027;   /* same as STB red */
+  --line-bus:         #2BB673;   /* vivid green — friendly default mode */
+  --line-trolley:     #2B6CB0;
+  --line-metro-m1:    #F5C518;
+  --line-metro-m2:    #0F766E;
+  --line-metro-m3:    #E63027;
+  --line-metro-m4:    #2B6CB0;
+  --line-metro-m5:    #7A4FA3;   /* purple — distinct from M2 teal */
+
+  /* Warm neutrals (slight cream tint) */
+  --neutral-50:   #F8F4ED;
+  --neutral-100:  #EFE8DC;
+  --neutral-200:  #DFD7C7;
+  --neutral-300:  #C8BFAD;
+  --neutral-400:  #A39A87;
+  --neutral-500:  #7A7261;
+  --neutral-600:  #574F40;
+  --neutral-700:  #3A3528;
+  --neutral-800:  #25211A;
+  --neutral-900:  #15130E;
+
+  /* Semantic */
+  --success:      #2F855A;
+  --success-soft: #C6F0D4;
+  --warning:      #C97A0E;
+  --warning-soft: #FBE8C0;
+  --danger:       #C53030;
+  --danger-soft:  #FAD0D0;
+  --info:         #2B6CB0;
+  --info-soft:    #CFE2F6;
+
+  /* Foreground / Background semantic */
+  --bg:           var(--cream);
+  --bg-elev:      var(--cream-2);
+  --bg-down:      var(--cream-3);
+  --bg-dark:      var(--tunnel);
+  --bg-dark-2:    var(--tunnel-2);
+
+  --fg:           var(--tunnel);
+  --fg-1:         var(--tunnel);
+  --fg-2:         var(--neutral-600);
+  --fg-3:         var(--neutral-500);
+  --fg-on-dark:   var(--cream);
+  --fg-on-red:    #FFFFFF;
+
+  --border:       var(--neutral-200);
+  --border-strong:var(--tunnel);
+
+  --hover-tint:   rgba(26, 31, 46, 0.06);
+  --press-tint:   rgba(26, 31, 46, 0.10);
+
+  /* ============ TYPE ============ */
+  --font-display: 'Bricolage Grotesque', 'Space Grotesk', system-ui, sans-serif;
+  --font-sans:    'Space Grotesk', system-ui, -apple-system, sans-serif;
+  --font-mono:    'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, monospace;
+
+  --fs-xs:    11px;
+  --fs-sm:    13px;
+  --fs-base:  15px;
+  --fs-md:    17px;
+  --fs-lg:    20px;
+  --fs-xl:    24px;
+  --fs-2xl:   32px;
+  --fs-3xl:   44px;
+  --fs-4xl:   60px;
+  --fs-5xl:   84px;
+
+  --lh-tight:    1.05;
+  --lh-snug:     1.2;
+  --lh-normal:   1.45;
+  --lh-relaxed:  1.6;
+
+  --tracking-tight:  -0.02em;
+  --tracking-normal: 0;
+  --tracking-wide:    0.06em;
+  --tracking-wider:   0.12em;
+
+  --fw-regular:  400;
+  --fw-medium:   500;
+  --fw-semibold: 600;
+  --fw-bold:     700;
+  --fw-black:    800;
+
+  /* ============ SPACE ============ */
+  --s-1:  4px;
+  --s-2:  8px;
+  --s-3:  12px;
+  --s-4:  16px;
+  --s-5:  20px;
+  --s-6:  24px;
+  --s-8:  32px;
+  --s-10: 40px;
+  --s-14: 56px;
+  --s-20: 80px;
+
+  /* ============ RADII ============ */
+  --r-xs:   6px;
+  --r-sm:   10px;
+  --r-md:   16px;
+  --r-lg:   24px;
+  --r-xl:   32px;
+  --r-pill: 999px;
+
+  /* ============ SHADOW ============ */
+  --shadow-card: 0 1px 2px rgba(26,31,46,.06), 0 4px 12px rgba(26,31,46,.04);
+  --shadow-pop:  0 8px 32px rgba(26,31,46,.12);
+  --shadow-press: 0 1px 1px rgba(26,31,46,.10);
+
+  /* ============ MOTION ============ */
+  --ease-bus:    cubic-bezier(0.34, 1.56, 0.64, 1);   /* arrives w/ overshoot */
+  --ease-ui:     cubic-bezier(0.4, 0, 0.2, 1);        /* general purpose */
+  --ease-out:    cubic-bezier(0.16, 1, 0.3, 1);
+
+  --dur-fast:    180ms;
+  --dur-mid:     320ms;
+  --dur-slow:    600ms;
+
+  /* ============ Z ============ */
+  --z-sticky:   10;
+  --z-overlay:  100;
+  --z-modal:    1000;
+  --z-toast:    2000;
+
+  /* ============ MAX WIDTHS ============ */
+  --w-app:   430px;   /* mobile app frame */
+  --w-read:  640px;
+}
+
+/* ============ Semantic typography classes ============ */
+
+.h1, h1 {
+  font-family: var(--font-display);
+  font-weight: var(--fw-bold);
+  font-size: var(--fs-3xl);
+  line-height: var(--lh-tight);
+  letter-spacing: var(--tracking-tight);
+  color: var(--fg-1);
+}
+
+.h2, h2 {
+  font-family: var(--font-display);
+  font-weight: var(--fw-semibold);
+  font-size: var(--fs-2xl);
+  line-height: var(--lh-tight);
+  letter-spacing: var(--tracking-tight);
+  color: var(--fg-1);
+}
+
+.h3, h3 {
+  font-family: var(--font-sans);
+  font-weight: var(--fw-semibold);
+  font-size: var(--fs-xl);
+  line-height: var(--lh-snug);
+  color: var(--fg-1);
+}
+
+.h4, h4 {
+  font-family: var(--font-sans);
+  font-weight: var(--fw-semibold);
+  font-size: var(--fs-md);
+  line-height: var(--lh-snug);
+  color: var(--fg-1);
+}
+
+.p, p, body {
+  font-family: var(--font-sans);
+  font-weight: var(--fw-regular);
+  font-size: var(--fs-base);
+  line-height: var(--lh-normal);
+  color: var(--fg-1);
+}
+
+.label, label {
+  font-family: var(--font-sans);
+  font-weight: var(--fw-medium);
+  font-size: var(--fs-sm);
+  letter-spacing: var(--tracking-wide);
+  text-transform: uppercase;
+  color: var(--fg-2);
+}
+
+.caption {
+  font-family: var(--font-sans);
+  font-weight: var(--fw-regular);
+  font-size: var(--fs-xs);
+  color: var(--fg-3);
+}
+
+.mono, code, kbd {
+  font-family: var(--font-mono);
+  font-size: 0.92em;
+  letter-spacing: 0;
+}
+
+.display-xl {
+  font-family: var(--font-display);
+  font-weight: var(--fw-black);
+  font-size: var(--fs-5xl);
+  line-height: 0.95;
+  letter-spacing: -0.04em;
+}
+
+/* Big numeric (next-arrival countdown) */
+.numeric-display {
+  font-family: var(--font-display);
+  font-weight: var(--fw-bold);
+  font-feature-settings: 'tnum' 1, 'lnum' 1;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.03em;
+}
+
+/* Route badge text */
+.route-tag {
+  font-family: var(--font-mono);
+  font-weight: var(--fw-semibold);
+  font-size: var(--fs-sm);
+  letter-spacing: 0;
+}
+
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
