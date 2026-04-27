@@ -7,7 +7,7 @@ namespace MyStb.Api.Tests.Services;
 
 public class GtfsParserTests
 {
-    private static Stream CreateTestGtfsZip(Dictionary<string, string> files)
+    private static ZipArchive CreateTestGtfsZip(Dictionary<string, string> files)
     {
         var ms = new MemoryStream();
         using (var archive = new ZipArchive(ms, ZipArchiveMode.Create, leaveOpen: true))
@@ -20,7 +20,7 @@ public class GtfsParserTests
             }
         }
         ms.Position = 0;
-        return ms;
+        return new ZipArchive(ms, ZipArchiveMode.Read);
     }
 
     // --- ParseStops ---

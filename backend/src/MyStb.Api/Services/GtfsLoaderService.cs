@@ -57,9 +57,15 @@ public class GtfsLoaderService
 
         try
         {
-            var stream = await _http.GetStreamAsync(url, ct);
-            var ms = new MemoryStream();
+            using var stream = await _http.GetStreamAsync(url, ct);
+            using var ms = new MemoryStream();
             await stream.CopyToAsync(ms, ct);
+            ms.Position = 0;
+
+            // Open the zip once and reuse it across parsers — the previous
+            // implementation re-wrapped the same MemoryStream in N ZipArchives,
+            // each disposing the underlying stream on close.
+            using var archive = new System.IO.Compression.ZipArchive(ms, System.IO.Compression.ZipArchiveMode.Read);
 
             using var scope = _services.CreateScope();
             var db = scope.ServiceProvider.GetRequiredService<IDbConnection>();
@@ -72,24 +78,19 @@ public class GtfsLoaderService
             db.Execute("DELETE FROM routes", transaction: tx);
             db.Execute("DELETE FROM stops", transaction: tx);
 
-            ms.Position = 0;
-            foreach (var stop in GtfsParser.ParseStops(ms))
+            foreach (var stop in GtfsParser.ParseStops(archive))
                 db.Execute("INSERT OR IGNORE INTO stops (id, name, lat, lng) VALUES (@Id, @Name, @Lat, @Lng)", stop, tx);
 
-            ms.Position = 0;
-            foreach (var route in GtfsParser.ParseRoutes(ms))
+            foreach (var route in GtfsParser.ParseRoutes(archive))
                 db.Execute("INSERT OR IGNORE INTO routes (id, short_name, long_name, type) VALUES (@Id, @ShortName, @LongName, @Type)", route, tx);
 
-            ms.Position = 0;
-            foreach (var rs in GtfsParser.ParseRouteStops(ms))
+            foreach (var rs in GtfsParser.ParseRouteStops(archive))
                 db.Execute("INSERT OR IGNORE INTO route_stops (route_id, stop_id, direction_id, stop_sequence) VALUES (@RouteId, @StopId, @DirectionId, @StopSequence)", rs, tx);
 
-            ms.Position = 0;
-            foreach (var shape in GtfsParser.ParseRouteShapes(ms))
+            foreach (var shape in GtfsParser.ParseRouteShapes(archive))
                 db.Execute("INSERT OR IGNORE INTO route_shapes (route_id, direction_id, shape_id) VALUES (@RouteId, @DirectionId, @ShapeId)", shape, tx);
 
-            ms.Position = 0;
-            foreach (var pt in GtfsParser.ParseShapePoints(ms))
+            foreach (var pt in GtfsParser.ParseShapePoints(archive))
                 db.Execute("INSERT OR IGNORE INTO shape_points (shape_id, lat, lng, sequence) VALUES (@ShapeId, @Lat, @Lng, @Sequence)", pt, tx);
 
             tx.Commit();

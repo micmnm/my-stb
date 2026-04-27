@@ -22,9 +22,8 @@ public static class GtfsParser
         return new StreamReader(entry.Open());
     }
 
-    public static IEnumerable<Stop> ParseStops(Stream zipStream)
+    public static IEnumerable<Stop> ParseStops(ZipArchive archive)
     {
-        using var archive = new ZipArchive(zipStream, ZipArchiveMode.Read);
         using var reader = OpenCsvFromZip(archive, "stops.txt");
         using var csv = new CsvReader(reader, CsvConfig);
 
@@ -41,9 +40,8 @@ public static class GtfsParser
         return stops;
     }
 
-    public static IEnumerable<Route> ParseRoutes(Stream zipStream)
+    public static IEnumerable<Route> ParseRoutes(ZipArchive archive)
     {
-        using var archive = new ZipArchive(zipStream, ZipArchiveMode.Read);
         using var reader = OpenCsvFromZip(archive, "routes.txt");
         using var csv = new CsvReader(reader, CsvConfig);
 
@@ -60,10 +58,8 @@ public static class GtfsParser
         return routes;
     }
 
-    public static IEnumerable<RouteStop> ParseRouteStops(Stream zipStream)
+    public static IEnumerable<RouteStop> ParseRouteStops(ZipArchive archive)
     {
-        using var archive = new ZipArchive(zipStream, ZipArchiveMode.Read);
-
         // Read trips into a lookup: trip_id -> (route_id, direction_id)
         var trips = new Dictionary<string, (string RouteId, int DirectionId)>();
         using (var reader = OpenCsvFromZip(archive, "trips.txt"))
@@ -110,9 +106,8 @@ public static class GtfsParser
         return result;
     }
 
-    public static IEnumerable<ShapePoint> ParseShapePoints(Stream zipStream)
+    public static IEnumerable<ShapePoint> ParseShapePoints(ZipArchive archive)
     {
-        using var archive = new ZipArchive(zipStream, ZipArchiveMode.Read);
         using var reader = OpenCsvFromZip(archive, "shapes.txt");
         using var csv = new CsvReader(reader, CsvConfig);
 
@@ -129,9 +124,8 @@ public static class GtfsParser
         return points;
     }
 
-    public static IEnumerable<RouteShape> ParseRouteShapes(Stream zipStream)
+    public static IEnumerable<RouteShape> ParseRouteShapes(ZipArchive archive)
     {
-        using var archive = new ZipArchive(zipStream, ZipArchiveMode.Read);
         using var reader = OpenCsvFromZip(archive, "trips.txt");
         using var csv = new CsvReader(reader, CsvConfig);
 
