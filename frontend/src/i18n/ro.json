@@ -45,8 +45,10 @@
 
   "route_detail.vehicles_count_one": "1 vehicul",
   "route_detail.vehicles_count_other": "{n} vehicule",
+  "route_detail.vehicles_count": "{n, plural, =0 {fără vehicule} one {# vehicul} few {# vehicule} other {# de vehicule}}",
   "route_detail.stops_count_one": "1 stație",
   "route_detail.stops_count_other": "{n} stații",
+  "route_detail.stops_count": "{n, plural, one {# stație} few {# stații} other {# de stații}}",
   "route_detail.reverse": "Inversează",
   "route_detail.your_stop": "Stația ta",
   "route_detail.terminus": "Terminus",
@@ -60,7 +62,7 @@
 
   "alert.service_alert": "Alertă de serviciu",
   "alert.until": "până {time}",
-  "alert.more": "+ {n} alte",
+  "alert.more": "+ {n, plural, one {1 altă} few {# alte} other {# alte}}",
 
   "plan.from": "De la",
   "plan.to": "Către",

@@ -1,0 +1,24 @@
+.banner {
+  position: fixed;
+  top: env(safe-area-inset-top);
+  left: 0;
+  right: 0;
+  background: var(--warning);
+  color: #fff;
+  font-family: var(--font-sans);
+  font-size: var(--fs-sm);
+  font-weight: var(--fw-medium);
+  text-align: center;
+  padding: 6px var(--s-3);
+  z-index: var(--z-overlay);
+  animation: banner-in var(--dur-fast) var(--ease-out);
+}
+
+@keyframes banner-in {
+  from { transform: translateY(-100%); }
+  to   { transform: translateY(0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .banner { animation: none; }
+}

@@ -22,7 +22,7 @@ function formatClock(iso: string): string {
 }
 
 function plural(t: ReturnType<typeof useT>, base: string, n: number): string {
-  return n === 1 ? t(`${base}_one`) : t(`${base}_other`, { n });
+  return t(base, { n });
 }
 
 export default function RouteDetailPage() {

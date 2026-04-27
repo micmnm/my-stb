@@ -22,6 +22,30 @@ button {
   color: inherit;
 }
 
+/* Visible focus ring on all interactive elements; matches handoff focus rule. */
+:where(a, button, input, textarea, select, [tabindex]):focus-visible {
+  outline: 2px solid var(--stb-red);
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+
+/* Skip-to-content for keyboard users. */
+.skip-link {
+  position: absolute;
+  left: -9999px;
+  top: auto;
+}
+
+.skip-link:focus {
+  left: var(--s-3);
+  top: var(--s-3);
+  z-index: var(--z-modal);
+  background: var(--stb-red);
+  color: var(--fg-on-red);
+  padding: 8px 12px;
+  border-radius: var(--r-pill);
+}
+
 .page-stub {
   padding: var(--s-6) var(--s-5);
   display: flex;

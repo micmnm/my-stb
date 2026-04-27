@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 import { BottomNav } from './BottomNav';
 import { DevToggles } from './DevToggles';
+import { OfflineBanner } from './OfflineBanner';
 
 export interface ScreenShellProps {
   children: ReactNode;
@@ -10,6 +11,7 @@ export interface ScreenShellProps {
 export function ScreenShell({ children, showBottomNav = true }: ScreenShellProps) {
   return (
     <div className="screen-shell">
+      <OfflineBanner />
       <main className="screen-shell__main">{children}</main>
       {showBottomNav && <BottomNav />}
       {import.meta.env.DEV && <DevToggles />}

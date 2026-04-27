@@ -45,8 +45,10 @@
 
   "route_detail.vehicles_count_one": "1 vehicle",
   "route_detail.vehicles_count_other": "{n} vehicles",
+  "route_detail.vehicles_count": "{n, plural, =0 {no vehicles} one {# vehicle} other {# vehicles}}",
   "route_detail.stops_count_one": "1 stop",
   "route_detail.stops_count_other": "{n} stops",
+  "route_detail.stops_count": "{n, plural, one {# stop} other {# stops}}",
   "route_detail.reverse": "Reverse",
   "route_detail.your_stop": "Your stop",
   "route_detail.terminus": "Terminus",
@@ -60,7 +62,7 @@
 
   "alert.service_alert": "Service alert",
   "alert.until": "until {time}",
-  "alert.more": "+ {n} more",
+  "alert.more": "+ {n, plural, one {1 more} other {# more}}",
 
   "plan.from": "From",
   "plan.to": "To",
