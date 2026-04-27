@@ -2,6 +2,8 @@ import type {
   ArrivalsResponse,
   Direction,
   GeocodingResult,
+  NearbyStop,
+  PeekArrivals,
   RouteDetailResponse,
   RouteOption,
   ServiceAlert,
@@ -16,6 +18,19 @@ async function get<T>(path: string, signal?: AbortSignal): Promise<T> {
   const headers: Record<string, string> = {};
   if (API_KEY) headers['X-Api-Key'] = API_KEY;
   const res = await fetch(`${BASE_URL}${path}`, { headers, signal });
+  if (!res.ok) throw new Error(`API error: ${res.status}`);
+  return res.json();
+}
+
+async function postJson<TBody, TResp>(path: string, body: TBody, signal?: AbortSignal): Promise<TResp> {
+  const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+  if (API_KEY) headers['X-Api-Key'] = API_KEY;
+  const res = await fetch(`${BASE_URL}${path}`, {
+    method: 'POST',
+    headers,
+    body: JSON.stringify(body),
+    signal,
+  });
   if (!res.ok) throw new Error(`API error: ${res.status}`);
   return res.json();
 }
@@ -51,5 +66,16 @@ export const api = {
     if (opts.stopId) qs.set('stopId', opts.stopId);
     const suffix = qs.toString();
     return get(`/api/alerts${suffix ? '?' + suffix : ''}`, signal);
+  },
+
+  getNearbyStops(lat: number, lng: number, opts?: { limit?: number; maxMeters?: number }, signal?: AbortSignal): Promise<NearbyStop[]> {
+    const qs = new URLSearchParams({ lat: String(lat), lng: String(lng) });
+    if (opts?.limit) qs.set('limit', String(opts.limit));
+    if (opts?.maxMeters) qs.set('maxMeters', String(opts.maxMeters));
+    return get(`/api/stops/nearby?${qs}`, signal);
+  },
+
+  peekArrivals(stopIds: string[], signal?: AbortSignal): Promise<PeekArrivals> {
+    return postJson('/api/stops/arrivals/peek', { stopIds }, signal);
   },
 };

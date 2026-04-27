@@ -160,6 +160,21 @@ export interface RouteDetailResponse {
   serverTime: string;
 }
 
+export interface NearbyStop {
+  id: string;
+  name: string;
+  lat: number;
+  lng: number;
+  distanceMeters: number;
+  walkSeconds: number;
+  routes: { shortName: string; routeType: number }[];
+}
+
+export interface PeekArrivals {
+  /** stopId → soonest arrivals (max 2 per stop, one per direction). */
+  [stopId: string]: { soonest: Arrival[] };
+}
+
 /** Map an STB GTFS route_type (or any numeric type) to our Mode token. */
 export function modeFromRouteType(type: number, shortName?: string): Mode {
   if (type === 1) {

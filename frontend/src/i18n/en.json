@@ -8,6 +8,8 @@
   "home.saved_section": "Your stops",
   "home.nearby_section": "Nearby",
   "home.empty_saved": "Save the stops you use most.",
+  "home.enable_location": "Turn on location",
+  "home.see_more": "See more",
 
   "search.placeholder": "Search a stop, line, or address",
   "search.recent": "Recent",
