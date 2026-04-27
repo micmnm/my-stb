@@ -6,6 +6,8 @@ import type {
   PeekArrivals,
   RouteDetailResponse,
   RouteOption,
+  SearchResponse,
+  SearchType,
   ServiceAlert,
   StopDetail,
   Vehicle,
@@ -44,8 +46,33 @@ export const api = {
     return get(`/api/vehicles?routeId=${routeId}`);
   },
 
-  searchPlaces(query: string): Promise<GeocodingResult[]> {
-    return get(`/api/search?q=${encodeURIComponent(query)}`);
+  /**
+   * Legacy address-only call kept for the /legacy map UX. Backed by the new
+   * unified search endpoint, then projected to the historic GeocodingResult shape.
+   */
+  async searchPlaces(query: string): Promise<GeocodingResult[]> {
+    const resp = await get<SearchResponse>(
+      `/api/search?q=${encodeURIComponent(query)}&types=addresses`,
+    );
+    return resp.addresses.map(a => ({
+      displayName: a.label,
+      lat: a.lat,
+      lng: a.lng,
+      type: a.type,
+    }));
+  },
+
+  search(
+    q: string,
+    opts?: { types?: SearchType[]; lat?: number; lng?: number; limit?: number },
+    signal?: AbortSignal,
+  ): Promise<SearchResponse> {
+    const qs = new URLSearchParams({ q });
+    if (opts?.types?.length) qs.set('types', opts.types.join(','));
+    if (opts?.lat !== undefined) qs.set('lat', String(opts.lat));
+    if (opts?.lng !== undefined) qs.set('lng', String(opts.lng));
+    if (opts?.limit) qs.set('limit', String(opts.limit));
+    return get(`/api/search?${qs}`, signal);
   },
 
   getStop(id: string, signal?: AbortSignal): Promise<StopDetail> {

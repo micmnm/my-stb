@@ -170,6 +170,37 @@ export interface NearbyStop {
   routes: { shortName: string; routeType: number }[];
 }
 
+export interface SearchStopHit {
+  id: string;
+  name: string;
+  lat: number;
+  lng: number;
+  routes: string[];
+  distanceMeters: number;
+}
+
+export interface SearchRouteHit {
+  id: string;
+  shortName: string;
+  longName: string;
+  routeType: number;
+}
+
+export interface SearchAddressHit {
+  label: string;
+  lat: number;
+  lng: number;
+  type: string | null;
+}
+
+export interface SearchResponse {
+  stops: SearchStopHit[];
+  routes: SearchRouteHit[];
+  addresses: SearchAddressHit[];
+}
+
+export type SearchType = 'stops' | 'routes' | 'addresses';
+
 export interface PeekArrivals {
   /** stopId → soonest arrivals (max 2 per stop, one per direction). */
   [stopId: string]: { soonest: Arrival[] };
