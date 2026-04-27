@@ -8,9 +8,11 @@ import { AlertBanner } from '../../components/atoms/AlertBanner';
 import { Skeleton } from '../../components/atoms/Skeleton';
 import { WalkChip } from '../../components/atoms/WalkChip';
 import { Chevron, IconBookmark, IconShare } from '../../components/icons';
+import { Toast } from '../../components/atoms/Toast';
 import { useStopArrivals } from '../../hooks/useStopArrivals';
 import { useGeolocation } from '../../hooks/useGeolocation';
 import { useT } from '../../i18n/useT';
+import { useSaved } from '../../stores/saved';
 import { api } from '../../api/client';
 import { modeFromRouteType, type Arrival, type StopDetail } from '../../types';
 import './stopDetail.css';
@@ -73,8 +75,10 @@ export default function StopDetailPage() {
   const { position } = useGeolocation();
   const [stopMeta, setStopMeta] = useState<StopDetail | null>(null);
   const [stopError, setStopError] = useState<Error | null>(null);
-  const [bookmarked, setBookmarked] = useState(false);
   const [expandedKey, setExpandedKey] = useState<string | null>(null);
+  const [toast, setToast] = useState<{ message: string } | null>(null);
+  const { isSaved, add: addSaved, remove: removeSaved } = useSaved();
+  const bookmarked = id ? isSaved('stop', id) : false;
 
   const { data, isLoading, isStale, error, refetch } = useStopArrivals(id);
 
@@ -115,8 +119,14 @@ export default function StopDetailPage() {
   };
 
   const onBookmark = () => {
-    // TODO(Phase 6): wire to favourites store
-    setBookmarked(b => !b);
+    if (!id) return;
+    if (bookmarked) {
+      removeSaved('stop', id);
+      setToast({ message: t('saved.removed', { name: stopMeta?.name ?? id }) });
+    } else {
+      addSaved({ kind: 'stop', id, name: stopMeta?.name ?? id });
+      setToast({ message: t('saved.added', { name: stopMeta?.name ?? id }) });
+    }
   };
 
   const handleExpandToggle = (groupKey: string) => {
@@ -239,6 +249,10 @@ export default function StopDetailPage() {
             );
           })}
         </div>
+
+        {toast && (
+          <Toast message={toast.message} onDismiss={() => setToast(null)} durationMs={3000} />
+        )}
       </div>
     </ScreenShell>
   );

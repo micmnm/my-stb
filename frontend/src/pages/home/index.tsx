@@ -6,21 +6,14 @@ import { AlertBannerStack } from '../../components/patterns/AlertBannerStack';
 import { StopRow } from '../../components/molecules/StopRow';
 import { RouteBadge } from '../../components/atoms/RouteBadge';
 import { Skeleton } from '../../components/atoms/Skeleton';
-import { useFavourites } from '../../hooks/useFavourites';
 import { useGeolocation } from '../../hooks/useGeolocation';
 import { useNearbyStops } from '../../hooks/useNearbyStops';
 import { useStopArrivalPeek } from '../../hooks/useStopArrivalPeek';
+import { migrateLegacyFavouritesIfPresent, useSaved } from '../../stores/saved';
 import { api } from '../../api/client';
 import { modeFromRouteType, type Arrival, type Mode, type ServiceAlert } from '../../types';
 import { useT } from '../../i18n/useT';
 import './home.css';
-
-interface ResolvedFav {
-  favId: string;
-  nickname: string;
-  stopId: string | null;
-  stopName: string | null;
-}
 
 function useClock(): string {
   const [now, setNow] = useState(new Date());
@@ -55,41 +48,22 @@ export default function HomePage() {
   const t = useT();
   const navigate = useNavigate();
   const clock = useClock();
-  const { favourites } = useFavourites();
+  const { stops: savedStops, routes: savedRoutes } = useSaved();
   const { position, error: geoError } = useGeolocation();
-
-  const [resolvedFavs, setResolvedFavs] = useState<ResolvedFav[]>([]);
   const [alerts, setAlerts] = useState<ServiceAlert[]>([]);
 
-  // Resolve each favourite to its closest known stop (so peek API can work).
+  // One-time migration from legacy favourites store.
   useEffect(() => {
-    let cancelled = false;
-    const resolve = async () => {
-      const out: ResolvedFav[] = await Promise.all(
-        favourites.map(async f => {
-          try {
-            const nearby = await api.getNearbyStops(f.lat, f.lng, { limit: 1, maxMeters: 80 });
-            const closest = nearby[0];
-            return {
-              favId: f.id,
-              nickname: f.name,
-              stopId: closest?.id ?? null,
-              stopName: closest?.name ?? null,
-            };
-          } catch {
-            return { favId: f.id, nickname: f.name, stopId: null, stopName: null };
-          }
-        }),
-      );
-      if (!cancelled) setResolvedFavs(out);
-    };
-    resolve();
-    return () => { cancelled = true; };
-  }, [favourites]);
+    void migrateLegacyFavouritesIfPresent(async (lat, lng) => {
+      const nearby = await api.getNearbyStops(lat, lng, { limit: 1, maxMeters: 50 }).catch(() => []);
+      const closest = nearby[0];
+      return closest ? { id: closest.id, name: closest.name } : null;
+    });
+  }, []);
 
   const peekIds = useMemo(
-    () => resolvedFavs.map(r => r.stopId).filter((id): id is string => !!id),
-    [resolvedFavs],
+    () => savedStops.filter(s => !s.legacy).map(s => s.id),
+    [savedStops],
   );
   const { data: peek } = useStopArrivalPeek(peekIds);
 
@@ -103,18 +77,21 @@ export default function HomePage() {
   }, []);
 
   const savedStopIdSet = useMemo(() => new Set(peekIds), [peekIds]);
+  const savedRouteIdSet = useMemo(() => new Set(savedRoutes.map(r => r.id)), [savedRoutes]);
   const intersectingAlerts = useMemo(
     () => alerts.filter(a =>
       (a.affectedStopIds ?? []).some(id => savedStopIdSet.has(id))
-      // Saved routes intersection arrives in Phase 6 with the proper SavedItem store.
+      || (a.affectedRouteIds ?? []).some(id => savedRouteIdSet.has(id))
     ),
-    [alerts, savedStopIdSet],
+    [alerts, savedStopIdSet, savedRouteIdSet],
   );
 
   // Nearby stops via geolocation.
   const nearbyOpts = useMemo(() => ({ limit: 5, maxMeters: 1500 }), []);
   const { data: nearby, isLoading: nearbyLoading } = useNearbyStops(position, nearbyOpts);
   const locationDenied = !!geoError;
+
+  const hasSaved = savedStops.length > 0 || savedRoutes.length > 0;
 
   return (
     <ScreenShell>
@@ -132,7 +109,7 @@ export default function HomePage() {
 
         <section className="home__section">
           <SectionHeader title={t('home.saved_section')} />
-          {favourites.length === 0 ? (
+          {!hasSaved ? (
             <div className="home__empty-card">
               <p>{t('home.empty_saved')}</p>
               <button
@@ -145,28 +122,24 @@ export default function HomePage() {
             </div>
           ) : (
             <div className="home__list">
-              {resolvedFavs.length === 0 && favourites.length > 0 && (
-                <>
-                  {favourites.map(f => (
-                    <div key={f.id} className="home__skeleton-row">
-                      <Skeleton w="40%" h="18px" />
-                      <Skeleton w="80px" h="14px" />
-                    </div>
-                  ))}
-                </>
-              )}
-              {resolvedFavs.map(r => {
-                const peekRows = r.stopId ? peek[r.stopId]?.soonest ?? [] : [];
+              {savedStops.map(item => {
+                const peekRows = item.legacy ? [] : peek[item.id]?.soonest ?? [];
+                const onTap = () => {
+                  if (item.legacy) return;
+                  navigate(`/stop/${encodeURIComponent(item.id)}`);
+                };
                 return (
                   <button
-                    key={r.favId}
+                    key={`stop:${item.id}`}
                     type="button"
                     className="home__saved-row"
-                    onClick={() => r.stopId ? navigate(`/stop/${encodeURIComponent(r.stopId)}`) : navigate('/legacy')}
+                    onClick={onTap}
                   >
                     <span className="home__saved-text">
-                      <span className="home__saved-name">{r.nickname}</span>
-                      {r.stopName && <span className="home__saved-sub">{r.stopName}</span>}
+                      <span className="home__saved-name">{item.nickname ?? item.name ?? item.id}</span>
+                      {item.name && item.nickname && item.name !== item.nickname && (
+                        <span className="home__saved-sub">{item.name}</span>
+                      )}
                     </span>
                     {peekRows.length > 0 && (
                       <span className="home__peek">
@@ -178,6 +151,21 @@ export default function HomePage() {
                   </button>
                 );
               })}
+              {savedRoutes.map(item => (
+                <button
+                  key={`route:${item.id}`}
+                  type="button"
+                  className="home__saved-row"
+                  onClick={() => navigate(`/route/${encodeURIComponent(item.id)}`)}
+                >
+                  {item.shortName && item.mode && (
+                    <RouteBadge num={item.shortName} mode={item.mode} size="md" />
+                  )}
+                  <span className="home__saved-text">
+                    <span className="home__saved-name">{item.nickname ?? item.shortName ?? item.id}</span>
+                  </span>
+                </button>
+              ))}
             </div>
           )}
         </section>
@@ -191,7 +179,6 @@ export default function HomePage() {
                 type="button"
                 className="home__cta"
                 onClick={() => {
-                  // Re-trigger the prompt by calling getCurrentPosition.
                   if (navigator.geolocation) {
                     navigator.geolocation.getCurrentPosition(() => { /* hook reacts via watchPosition */ });
                   }

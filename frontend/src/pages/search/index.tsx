@@ -8,7 +8,7 @@ import { RouteBadge } from '../../components/atoms/RouteBadge';
 import { IconLocationDot } from '../../components/icons';
 import { api } from '../../api/client';
 import { useT } from '../../i18n/useT';
-import { useFavourites } from '../../hooks/useFavourites';
+import { useSaved } from '../../stores/saved';
 import { pushRecent, useRecents, type Recent } from '../../stores/recents';
 import { modeFromRouteType, type Mode, type SearchResponse, type SearchType } from '../../types';
 import './search.css';
@@ -40,7 +40,7 @@ export default function SearchPage() {
   const abortRef = useRef<AbortController | null>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const recents = useRecents();
-  const { add: addFavourite } = useFavourites();
+  const { add: addSaved } = useSaved();
 
   // Reflect query + filter into URL so refresh / back works.
   useEffect(() => {
@@ -87,18 +87,23 @@ export default function SearchPage() {
   const onSelectStop = (stop: { id: string; name: string; lat: number; lng: number }) => {
     pushRecent({ kind: 'stop', refId: stop.id, label: stop.name });
     if (intent === 'save') {
-      addFavourite(stop.name, stop.lat, stop.lng);
+      addSaved({ kind: 'stop', id: stop.id, name: stop.name });
       navigate(-1);
       return;
     }
     navigate(`/stop/${encodeURIComponent(stop.id)}`);
   };
 
-  const onSelectRoute = (route: { id: string; shortName: string; longName: string }) => {
+  const onSelectRoute = (route: { id: string; shortName: string; longName: string; routeType: number }) => {
     pushRecent({ kind: 'route', refId: route.id, label: `${route.shortName} · ${route.longName}` });
     if (intent === 'save') {
-      // Routes-only save isn't supported in the legacy favourites store; bounce as navigate.
-      navigate(`/route/${encodeURIComponent(route.id)}`);
+      addSaved({
+        kind: 'route',
+        id: route.id,
+        shortName: route.shortName,
+        mode: modeFromRouteType(route.routeType, route.shortName),
+      });
+      navigate(-1);
       return;
     }
     navigate(`/route/${encodeURIComponent(route.id)}`);

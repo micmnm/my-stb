@@ -7,10 +7,12 @@ import { AlertBanner } from '../../components/atoms/AlertBanner';
 import { RouteBadge } from '../../components/atoms/RouteBadge';
 import { ReversePill } from '../../components/atoms/ReversePill';
 import { Skeleton } from '../../components/atoms/Skeleton';
+import { Toast } from '../../components/atoms/Toast';
 import { Chevron, IconBookmark } from '../../components/icons';
 import { Schematic } from '../../components/molecules/Schematic';
 import { useRouteDetail } from '../../hooks/useRouteDetail';
 import { useT } from '../../i18n/useT';
+import { useSaved } from '../../stores/saved';
 import type { Direction } from '../../types';
 import './routeDetail.css';
 
@@ -28,7 +30,9 @@ export default function RouteDetailPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
   const t = useT();
-  const [bookmarked, setBookmarked] = useState(false);
+  const { isSaved, add: addSaved, remove: removeSaved } = useSaved();
+  const bookmarked = id ? isSaved('route', id) : false;
+  const [toast, setToast] = useState<{ message: string } | null>(null);
 
   const direction: Direction = searchParams.get('dir') === 'b' ? 'b' : 'a';
   const { data, isLoading, isStale, error, refetch } = useRouteDetail(id, direction);
@@ -47,8 +51,19 @@ export default function RouteDetailPage() {
   }, [direction, refetch]);
 
   const onBookmark = () => {
-    // TODO(Phase 6): wire to favourites store
-    setBookmarked(b => !b);
+    if (!id) return;
+    if (bookmarked) {
+      removeSaved('route', id);
+      setToast({ message: t('saved.removed', { name: data?.route.shortName ?? id }) });
+    } else if (data) {
+      addSaved({
+        kind: 'route',
+        id,
+        shortName: data.route.shortName,
+        mode: data.route.mode,
+      });
+      setToast({ message: t('saved.added', { name: data.route.shortName }) });
+    }
   };
 
   const headsignTo =
@@ -158,6 +173,10 @@ export default function RouteDetailPage() {
             />
           )}
         </div>
+
+        {toast && (
+          <Toast message={toast.message} onDismiss={() => setToast(null)} durationMs={3000} />
+        )}
       </div>
     </ScreenShell>
   );
