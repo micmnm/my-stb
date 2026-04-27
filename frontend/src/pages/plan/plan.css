@@ -1,0 +1,278 @@
+.plan-page {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-3);
+  padding-bottom: var(--s-6);
+}
+
+.plan-page__header {
+  display: flex;
+  align-items: center;
+  gap: var(--s-3);
+  padding: var(--s-4) var(--s-4) 0;
+}
+
+.plan-page__title {
+  font-family: var(--font-display);
+  font-weight: var(--fw-bold);
+  font-size: var(--fs-2xl);
+  margin: 0;
+  color: var(--fg-1);
+  flex: 1;
+}
+
+.plan-page__icon-btn {
+  appearance: none;
+  background: transparent;
+  border: none;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  color: var(--fg-1);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.plan-page__icon-btn:hover { background: var(--hover-tint); }
+
+.plan-input__card {
+  margin: 0 var(--s-4);
+  padding: var(--s-3);
+  background: var(--bg-elev);
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-2);
+}
+
+.plan-input__row {
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+  padding: var(--s-3);
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  min-height: 56px;
+  cursor: pointer;
+  text-align: left;
+}
+
+.plan-input__row-label {
+  font-size: var(--fs-xs);
+  color: var(--fg-3);
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-wide);
+}
+
+.plan-input__row-value {
+  font-size: var(--fs-base);
+  color: var(--fg-1);
+  font-weight: var(--fw-medium);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.plan-input__row-empty { color: var(--fg-3); font-weight: var(--fw-regular); }
+
+.plan-input__swap-row {
+  display: flex;
+  justify-content: center;
+  margin: -4px 0;
+}
+
+.plan-input__swap {
+  appearance: none;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 50%;
+  width: 36px;
+  height: 36px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--fg-1);
+  cursor: pointer;
+}
+
+.plan-input__when {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+  padding: 0 var(--s-4);
+}
+
+.plan-input__when-chip {
+  appearance: none;
+  background: var(--bg-elev);
+  color: var(--fg-1);
+  border: 1px solid var(--border);
+  border-radius: var(--r-pill);
+  padding: 6px 14px;
+  min-height: 36px;
+  font-size: var(--fs-sm);
+  font-weight: var(--fw-medium);
+  cursor: pointer;
+}
+
+.plan-input__when-chip.is-active {
+  background: var(--stb-red);
+  color: var(--fg-on-red);
+  border-color: var(--stb-red);
+}
+
+.plan-input__time {
+  margin: 0 var(--s-4);
+  padding: 8px 12px;
+  background: var(--bg-elev);
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  font: inherit;
+  color: var(--fg-1);
+}
+
+.plan-input__modes {
+  margin: 0 var(--s-4);
+  padding: var(--s-3);
+  background: var(--bg-elev);
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-2);
+}
+
+.plan-input__modes-title {
+  font-size: var(--fs-xs);
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-wide);
+  color: var(--fg-2);
+  margin: 0;
+}
+
+.plan-input__modes-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.plan-input__cta {
+  appearance: none;
+  margin: var(--s-2) var(--s-4) 0;
+  padding: 14px var(--s-4);
+  min-height: 48px;
+  border-radius: var(--r-pill);
+  background: var(--stb-red);
+  color: var(--fg-on-red);
+  border: none;
+  font-family: var(--font-sans);
+  font-weight: var(--fw-semibold);
+  font-size: var(--fs-base);
+  cursor: pointer;
+}
+
+.plan-input__cta:disabled {
+  background: var(--neutral-300);
+  color: var(--neutral-500);
+  cursor: not-allowed;
+}
+
+.plan-input__direct {
+  margin: 0 var(--s-4);
+  font-size: var(--fs-xs);
+  color: var(--fg-3);
+}
+
+.plan-results__list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-3);
+  padding: 0 var(--s-4);
+}
+
+.plan-trip-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-2);
+  padding: var(--s-3);
+  background: var(--bg-elev);
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  cursor: pointer;
+  text-align: left;
+  font: inherit;
+  color: inherit;
+}
+
+.plan-trip-card:hover { background: var(--hover-tint); }
+
+.plan-trip-card__times {
+  font-family: var(--font-display);
+  font-weight: var(--fw-bold);
+  font-size: var(--fs-xl);
+  font-variant-numeric: tabular-nums;
+  color: var(--fg-1);
+}
+
+.plan-trip-card__meta {
+  font-size: var(--fs-sm);
+  color: var(--fg-2);
+}
+
+.plan-trip-card__strip {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  height: 8px;
+  border-radius: var(--r-pill);
+  overflow: hidden;
+}
+
+.plan-trip-card__strip-segment {
+  height: 100%;
+}
+
+.plan-trip-card__walk {
+  font-size: var(--fs-xs);
+  color: var(--fg-3);
+}
+
+.plan-step-by-step {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-3);
+  padding: 0 var(--s-4);
+}
+
+.plan-step {
+  display: flex;
+  gap: var(--s-3);
+  align-items: flex-start;
+  padding: var(--s-3);
+  background: var(--bg-elev);
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+}
+
+.plan-step__title {
+  font-size: var(--fs-base);
+  font-weight: var(--fw-semibold);
+  color: var(--fg-1);
+  margin: 0;
+}
+
+.plan-step__caption {
+  font-size: var(--fs-xs);
+  color: var(--fg-3);
+}
+
+.plan-step__times {
+  font-family: var(--font-display);
+  font-weight: var(--fw-medium);
+  font-variant-numeric: tabular-nums;
+  font-size: var(--fs-sm);
+  color: var(--fg-2);
+}

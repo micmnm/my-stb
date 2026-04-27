@@ -4,6 +4,8 @@ import type {
   GeocodingResult,
   NearbyStop,
   PeekArrivals,
+  PlanRequest,
+  PlanResponse,
   RouteDetailResponse,
   RouteOption,
   SearchResponse,
@@ -104,5 +106,9 @@ export const api = {
 
   peekArrivals(stopIds: string[], signal?: AbortSignal): Promise<PeekArrivals> {
     return postJson('/api/stops/arrivals/peek', { stopIds }, signal);
+  },
+
+  plan(request: PlanRequest, signal?: AbortSignal): Promise<PlanResponse> {
+    return postJson('/api/plan', request, signal);
   },
 };

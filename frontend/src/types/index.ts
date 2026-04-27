@@ -201,6 +201,68 @@ export interface SearchResponse {
 
 export type SearchType = 'stops' | 'routes' | 'addresses';
 
+export interface PlanLocation {
+  kind: 'stop' | 'address';
+  stopId?: string;
+  lat?: number;
+  lng?: number;
+  label?: string;
+}
+
+export interface PlanWhen {
+  type: 'now' | 'leaveAt' | 'arriveBy';
+  time?: string;
+}
+
+export type PlanModeFilter = 'tram' | 'bus' | 'trolley' | 'metro';
+
+export interface PlanRequest {
+  from: PlanLocation;
+  to: PlanLocation;
+  when?: PlanWhen;
+  modes?: string[];
+  maxWalkMeters?: number;
+  accessible?: boolean;
+}
+
+export interface PlanWalkLeg {
+  kind: 'walk';
+  fromName: string;
+  toName: string;
+  durationSeconds: number;
+  meters: number;
+}
+
+export interface PlanTransitLeg {
+  kind: 'transit';
+  routeId: string;
+  mode: Mode;
+  fromStopId: string;
+  fromStopName: string;
+  toStopId: string;
+  toStopName: string;
+  headsign: string;
+  departsAt: string;
+  arrivesAt: string;
+  isLive: boolean;
+  stops: number;
+}
+
+export type PlanLeg = PlanWalkLeg | PlanTransitLeg;
+
+export interface Trip {
+  id: string;
+  startsAt: string;
+  endsAt: string;
+  durationSeconds: number;
+  walkSecondsTotal: number;
+  legs: PlanLeg[];
+}
+
+export interface PlanResponse {
+  trips: Trip[];
+}
+
 export interface PeekArrivals {
   /** stopId → soonest arrivals (max 2 per stop, one per direction). */
   [stopId: string]: { soonest: Arrival[] };

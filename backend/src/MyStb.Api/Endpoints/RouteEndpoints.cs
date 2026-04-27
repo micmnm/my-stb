@@ -21,5 +21,12 @@ public static class RouteEndpoints
             var resp = svc.Get(db, id, dir, alerts, DateTimeOffset.UtcNow);
             return resp is null ? Results.NotFound() : Results.Ok(resp);
         });
+
+        app.MapPost("/api/plan", (PlanService.PlanRequest body, IDbConnection db) =>
+        {
+            var svc = new PlanService();
+            var resp = svc.Plan(db, body, DateTimeOffset.UtcNow);
+            return Results.Ok(resp);
+        });
     }
 }
