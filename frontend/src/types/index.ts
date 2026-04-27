@@ -59,3 +59,71 @@ export function routeTypeLabel(type: number): RouteTypeLabel {
     default: return 'bus';
   }
 }
+
+// ============== New shapes (data.md) ==============
+
+export type Mode = 'tram' | 'bus' | 'trolley' | 'm1' | 'm2' | 'm3' | 'm4' | 'm5';
+
+export interface RouteSummary {
+  id: string;
+  shortName: string;
+  routeType: number;
+}
+
+export interface StopDetail {
+  id: string;
+  name: string;
+  lat: number;
+  lng: number;
+  routes: RouteSummary[];
+  street?: string;
+}
+
+export interface Arrival {
+  routeId: string;
+  shortName: string;
+  routeType: number;
+  vehicleId: string;
+  direction: 'a' | 'b';
+  directionId: number;
+  destinationStopId: string;
+  destinationName: string;
+  etaSeconds: number;
+  isLive: boolean;
+  isCancelled: boolean;
+}
+
+export interface ArrivalsResponse {
+  stopId: string;
+  serverTime: string;
+  arrivals: Arrival[];
+}
+
+export type AlertSeverity = 'info' | 'warning' | 'critical';
+
+export interface ServiceAlert {
+  id: string;
+  title: string;
+  body: string;
+  severity: AlertSeverity;
+  affectedRouteIds?: string[];
+  affectedStopIds?: string[];
+  startsAt?: string;
+  endsAt?: string;
+}
+
+/** Map an STB GTFS route_type (or any numeric type) to our Mode token. */
+export function modeFromRouteType(type: number, shortName?: string): Mode {
+  if (type === 1) {
+    const sn = shortName?.toUpperCase() ?? '';
+    if (sn === 'M1') return 'm1';
+    if (sn === 'M2') return 'm2';
+    if (sn === 'M3') return 'm3';
+    if (sn === 'M4') return 'm4';
+    if (sn === 'M5') return 'm5';
+    return 'm1';
+  }
+  if (type === 0) return 'tram';
+  if (type === 11) return 'trolley';
+  return 'bus';
+}

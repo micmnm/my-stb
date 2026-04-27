@@ -23,5 +23,20 @@ public static class StopEndpoints
                 .Select(x => new { x.Stop.Id, x.Stop.Name, x.Stop.Lat, x.Stop.Lng, Distance = Math.Round(x.Distance) });
             return Results.Ok(results);
         });
+
+        app.MapGet("/api/stops/{id}", (string id, IDbConnection db) =>
+        {
+            var svc = new ArrivalsService();
+            var stop = svc.GetStop(db, id);
+            return stop is null ? Results.NotFound() : Results.Ok(stop);
+        });
+
+        app.MapGet("/api/stops/{id}/arrivals", (string id, IDbConnection db) =>
+        {
+            var svc = new ArrivalsService();
+            var now = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
+            var resp = svc.GetArrivals(db, id, now);
+            return resp is null ? Results.NotFound() : Results.Ok(resp);
+        });
     }
 }
