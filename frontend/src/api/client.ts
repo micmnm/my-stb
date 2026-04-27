@@ -1,7 +1,10 @@
 import type {
   ArrivalsResponse,
+  Direction,
   GeocodingResult,
+  RouteDetailResponse,
   RouteOption,
+  ServiceAlert,
   StopDetail,
   Vehicle,
 } from '../types';
@@ -36,5 +39,17 @@ export const api = {
 
   getArrivals(stopId: string, signal?: AbortSignal): Promise<ArrivalsResponse> {
     return get(`/api/stops/${encodeURIComponent(stopId)}/arrivals`, signal);
+  },
+
+  getRouteDetail(routeId: string, direction: Direction, signal?: AbortSignal): Promise<RouteDetailResponse> {
+    return get(`/api/routes/${encodeURIComponent(routeId)}/detail?direction=${direction}`, signal);
+  },
+
+  getAlerts(opts: { routeId?: string; stopId?: string } = {}, signal?: AbortSignal): Promise<ServiceAlert[]> {
+    const qs = new URLSearchParams();
+    if (opts.routeId) qs.set('routeId', opts.routeId);
+    if (opts.stopId) qs.set('stopId', opts.stopId);
+    const suffix = qs.toString();
+    return get(`/api/alerts${suffix ? '?' + suffix : ''}`, signal);
   },
 };

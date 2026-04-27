@@ -1,0 +1,13 @@
+[
+  {
+    "id": "alert-001",
+    "severity": "warning",
+    "title": "Lucrări tramvai 41",
+    "body": "Serviciu redus pe Drumul Sării.",
+    "affectedRouteIds": ["41"],
+    "affectedStopIds": [],
+    "startsAt": "2026-04-01T05:00:00+03:00",
+    "endsAt": "2026-12-31T22:00:00+03:00",
+    "url": null
+  }
+]

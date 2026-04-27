@@ -25,6 +25,14 @@ builder.Services.AddSingleton<IGeocodingProvider>(sp =>
     return new NominatimProvider(http, baseUrl);
 });
 
+builder.Services.AddSingleton<IAlertsProvider>(sp =>
+{
+    var logger = sp.GetRequiredService<ILogger<FileAlertsProvider>>();
+    var path = builder.Configuration["Alerts:Path"]
+               ?? Path.Combine(AppContext.BaseDirectory, "Data", "alerts.json");
+    return new FileAlertsProvider(path, logger);
+});
+
 builder.Services.AddCors(options =>
 {
     options.AddDefaultPolicy(policy =>
@@ -75,5 +83,6 @@ app.MapStopEndpoints();
 app.MapRouteEndpoints();
 app.MapVehicleEndpoints();
 app.MapSearchEndpoints();
+app.MapAlertEndpoints();
 
 app.Run();

@@ -110,6 +110,54 @@ export interface ServiceAlert {
   affectedStopIds?: string[];
   startsAt?: string;
   endsAt?: string;
+  url?: string | null;
+}
+
+export type Direction = 'a' | 'b';
+
+export interface RouteSummaryDetail {
+  id: string;
+  shortName: string;
+  longName: string;
+  routeType: number;
+  mode: Mode;
+}
+
+export interface Terminus {
+  stopId: string;
+  name: string;
+}
+
+export interface SchematicStopDto {
+  id: string;
+  name: string;
+  sequence: number;
+  isTerminus: boolean;
+  etaSeconds: number | null;
+}
+
+export interface VehicleDto {
+  id: string;
+  routeId: string;
+  lat: number;
+  lng: number;
+  directionId: number;
+  direction: Direction;
+  updatedAt: number;
+  isLive: boolean;
+  nextStopId: string | null;
+  nextStopEtaSeconds: number | null;
+}
+
+export interface RouteDetailResponse {
+  route: RouteSummaryDetail;
+  terminusA: Terminus | null;
+  terminusB: Terminus | null;
+  direction: Direction;
+  stops: SchematicStopDto[];
+  vehicles: VehicleDto[];
+  alerts: ServiceAlert[];
+  serverTime: string;
 }
 
 /** Map an STB GTFS route_type (or any numeric type) to our Mode token. */
