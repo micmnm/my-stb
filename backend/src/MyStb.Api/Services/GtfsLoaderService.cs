@@ -17,7 +17,7 @@ public class GtfsLoaderService
         _services = services;
         _config = config;
         _logger = logger;
-        _http = httpFactory.CreateClient();
+        _http = httpFactory.CreateClient("Gtfs");
     }
 
     /// <summary>

@@ -14,6 +14,15 @@ builder.Services.AddScoped<IDbConnection>(_ =>
 });
 
 builder.Services.AddHttpClient();
+
+// TPBI's GTFS feed has shipped with an expired cert before with no ETA on renewal;
+// tolerate TLS validation errors on this client only so the static feed can still refresh.
+builder.Services.AddHttpClient("Gtfs")
+    .ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler
+    {
+        ServerCertificateCustomValidationCallback = (_, _, _, _) => true
+    });
+
 builder.Services.AddSingleton<GtfsLoaderService>();
 builder.Services.AddSingleton<VehiclePollerService>();
 builder.Services.AddHostedService(sp => sp.GetRequiredService<VehiclePollerService>());
