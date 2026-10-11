@@ -1,10 +1,14 @@
 using System.Data;
 using Microsoft.Data.Sqlite;
+using MyStb.Api;
 using MyStb.Api.Database;
 using MyStb.Api.Endpoints;
 using MyStb.Api.Services;
 
 var builder = WebApplication.CreateBuilder(args);
+
+// Logs: ECS JSON on stdout. Traces: OTLP, only when OTEL_EXPORTER_OTLP_ENDPOINT is set.
+builder.AddObservability("my-stb-api", "/healthz");
 
 builder.Services.AddScoped<IDbConnection>(_ =>
 {
