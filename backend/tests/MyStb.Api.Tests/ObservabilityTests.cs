@@ -2,6 +2,7 @@ using System.Diagnostics;
 using System.Text.Json;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.DependencyInjection;
+using OpenTelemetry.Exporter;
 using OpenTelemetry.Trace;
 using Serilog.Events;
 using Serilog.Parsing;
@@ -87,4 +88,15 @@ public class ObservabilityTests
             Environment.SetEnvironmentVariable(Observability.EndpointVariable, null);
         }
     }
+
+    [Theory]
+    [InlineData("grpc", OtlpExportProtocol.Grpc)]
+    [InlineData("GRPC", OtlpExportProtocol.Grpc)]
+    [InlineData(" grpc ", OtlpExportProtocol.Grpc)]
+    [InlineData(null, OtlpExportProtocol.HttpProtobuf)]
+    [InlineData("", OtlpExportProtocol.HttpProtobuf)]
+    [InlineData("http/protobuf", OtlpExportProtocol.HttpProtobuf)]
+    [InlineData("something-else", OtlpExportProtocol.HttpProtobuf)]
+    public void Protocol_is_grpc_only_when_asked(string? value, OtlpExportProtocol expected) =>
+        Assert.Equal(expected, Observability.ParseProtocol(value));
 }
