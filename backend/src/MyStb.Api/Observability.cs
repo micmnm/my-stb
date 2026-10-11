@@ -11,11 +11,19 @@ namespace MyStb.Api;
 
 /// <summary>
 /// Logs: one ECS JSON object per line on stdout (an agent on the node collects them).
-/// Traces and runtime metrics: OTLP over HTTP, only when OTEL_EXPORTER_OTLP_ENDPOINT is set.
+/// Traces and runtime metrics: OTLP (HTTP by default, gRPC via OTEL_EXPORTER_OTLP_PROTOCOL=grpc), only when OTEL_EXPORTER_OTLP_ENDPOINT is set.
 /// </summary>
 public static class Observability
 {
     public const string EndpointVariable = "OTEL_EXPORTER_OTLP_ENDPOINT";
+
+    public const string ProtocolVariable = "OTEL_EXPORTER_OTLP_PROTOCOL";
+
+    /// <summary>"grpc" (any case) selects gRPC; unset, "http/protobuf" or anything else keeps HTTP.</summary>
+    public static OtlpExportProtocol ParseProtocol(string? value) =>
+        string.Equals(value?.Trim(), "grpc", StringComparison.OrdinalIgnoreCase)
+            ? OtlpExportProtocol.Grpc
+            : OtlpExportProtocol.HttpProtobuf;
 
     public static bool TracingEnabled =>
         !string.IsNullOrEmpty(Environment.GetEnvironmentVariable(EndpointVariable));
@@ -53,8 +61,9 @@ public static class Observability
 
         void ConfigureOtlp(OtlpExporterOptions options)
         {
-            // The endpoint comes from OTEL_EXPORTER_OTLP_ENDPOINT; the SDK appends /v1/traces and /v1/metrics.
-            options.Protocol = OtlpExportProtocol.HttpProtobuf;
+            // The endpoint comes from OTEL_EXPORTER_OTLP_ENDPOINT: used as given with gRPC;
+            // with HTTP the SDK appends /v1/traces and /v1/metrics.
+            options.Protocol = ParseProtocol(Environment.GetEnvironmentVariable(ProtocolVariable));
             options.TimeoutMilliseconds = 3000;
             var token = Environment.GetEnvironmentVariable("ELASTIC_APM_SECRET_TOKEN");
             if (!string.IsNullOrEmpty(token))
