@@ -1,5 +1,5 @@
-import { lazy, Suspense } from 'react';
-import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
+import { lazy, Suspense, useEffect, useRef } from 'react';
+import { BrowserRouter, Navigate, Route, Routes, useLocation } from 'react-router-dom';
 import { ScreenShell } from '../components/layout/ScreenShell';
 import { Skeleton } from '../components/atoms/Skeleton';
 import '../components/layout/layout.css';
@@ -26,9 +26,24 @@ function PageFallback() {
   );
 }
 
+// count.js (index.html) counts the initial load; this counts client-side route changes.
+function PageViews() {
+  const { pathname, search } = useLocation();
+  const first = useRef(true);
+  useEffect(() => {
+    if (first.current) {
+      first.current = false;
+      return;
+    }
+    (window as { goatcounter?: { count?: () => void } }).goatcounter?.count?.();
+  }, [pathname, search]);
+  return null;
+}
+
 export function AppRoutes() {
   return (
     <BrowserRouter>
+      <PageViews />
       <Suspense fallback={<PageFallback />}>
         <Routes>
           <Route path="/" element={<HomePage />} />
