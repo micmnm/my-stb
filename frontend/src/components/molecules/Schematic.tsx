@@ -73,7 +73,7 @@ export function Schematic({
   const renderVehicle = (v: VehicleDto) => (
     <div
       key={v.id}
-      className={[styles.vehicleRow, stale || !v.isLive ? styles.staleVehicle : ''].filter(Boolean).join(' ')}
+      className={[styles.vehicleRow, stale || !v.isLive || v.freshness === 'stale' ? styles.staleVehicle : ''].filter(Boolean).join(' ')}
     >
       <span className={styles.vehicleMarkerWrap}>
         <span className={styles.vehicleMarker} style={{ background: vehicleColor }} aria-hidden="true" />

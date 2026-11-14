@@ -12,6 +12,7 @@ import { Toast } from '../../components/atoms/Toast';
 import { useStopArrivals } from '../../hooks/useStopArrivals';
 import { useGeolocation } from '../../hooks/useGeolocation';
 import { useT } from '../../i18n/useT';
+import { feedDownTitle } from '../../i18n/eta';
 import { useSaved } from '../../stores/saved';
 import { api } from '../../api/client';
 import { modeFromRouteType, type Arrival, type StopDetail } from '../../types';
@@ -26,9 +27,15 @@ interface RouteGroup {
   minEta: number;
 }
 
+// Live before stale so a stale bus is never a direction's headline while a live one exists.
+function byFreshnessThenEta(x: Arrival, y: Arrival): number {
+  if (x.freshness !== y.freshness) return x.freshness === 'live' ? -1 : 1;
+  return x.etaSeconds - y.etaSeconds;
+}
+
 function groupArrivals(arrivals: Arrival[]): RouteGroup[] {
   const map = new Map<string, RouteGroup>();
-  for (const a of arrivals) {
+  for (const a of [...arrivals].sort(byFreshnessThenEta)) {
     let group = map.get(a.routeId);
     if (!group) {
       group = {
@@ -47,9 +54,20 @@ function groupArrivals(arrivals: Arrival[]): RouteGroup[] {
     } else {
       group[slot]!.following.push(a);
     }
-    group.minEta = Math.min(group.minEta, a.etaSeconds);
+    // Stale-only routes sort last.
+    if (a.freshness === 'live') group.minEta = Math.min(group.minEta, a.etaSeconds);
   }
-  return [...map.values()].sort((x, y) => x.minEta - y.minEta);
+  return [...map.values()].sort((x, y) => (x.minEta === y.minEta ? 0 : x.minEta < y.minEta ? -1 : 1));
+}
+
+function toDirectionEta(a: Arrival): DirectionEta {
+  return {
+    to: a.destinationName,
+    etaSeconds: a.etaSeconds,
+    isLive: a.isLive,
+    freshness: a.freshness,
+    lastSeenSeconds: a.lastSeenSeconds,
+  };
 }
 
 function metersHaversine(a: { lat: number; lng: number }, b: { lat: number; lng: number }): number {
@@ -80,7 +98,7 @@ export default function StopDetailPage() {
   const { isSaved, add: addSaved, remove: removeSaved } = useSaved();
   const bookmarked = id ? isSaved('stop', id) : false;
 
-  const { data, isLoading, isStale, error, refetch } = useStopArrivals(id);
+  const { data, isLoading, feed, feedDown, error } = useStopArrivals(id);
 
   useEffect(() => {
     if (!id) return;
@@ -182,14 +200,14 @@ export default function StopDetailPage() {
           {(error || stopError) && (
             <AlertBanner severity="critical" title={t('errors.feed_down')} body={t('errors.offline')} />
           )}
-          {isStale && !error && (
-            <AlertBanner severity="warning" title={t('stop_detail.stale_label')} onDismiss={refetch} />
+          {feedDown && !error && (
+            <AlertBanner severity="warning" title={feedDownTitle(t, feed?.lastSuccessAt ?? null)} />
           )}
         </div>
 
         <SectionHeader
           title={`${t('stop_detail.arrivals')} · ${t('stop_detail.both_dirs')}`}
-          live={!!data && !isStale}
+          live={!!data && !feedDown}
           serverTime={data ? formatClock(data.serverTime) : undefined}
         />
 
@@ -215,12 +233,8 @@ export default function StopDetailPage() {
             const expanded = expandedKey === groupKey;
             const mode = modeFromRouteType(group.routeType, group.shortName);
 
-            const dirA: DirectionEta | null = group.directionA
-              ? { to: group.directionA.soonest.destinationName, etaSeconds: group.directionA.soonest.etaSeconds, isLive: group.directionA.soonest.isLive }
-              : null;
-            const dirB: DirectionEta | null = group.directionB
-              ? { to: group.directionB.soonest.destinationName, etaSeconds: group.directionB.soonest.etaSeconds, isLive: group.directionB.soonest.isLive }
-              : null;
+            const dirA = group.directionA ? toDirectionEta(group.directionA.soonest) : null;
+            const dirB = group.directionB ? toDirectionEta(group.directionB.soonest) : null;
 
             const expandedDirection: 'a' | 'b' = group.directionA ? 'a' : 'b';
             const expandedSlot = expandedDirection === 'a' ? group.directionA : group.directionB;
@@ -233,7 +247,7 @@ export default function StopDetailPage() {
                   directionA={dirA}
                   directionB={dirB}
                   expanded={expanded}
-                  stale={isStale}
+                  stale={feedDown}
                   onTap={() => handleExpandToggle(groupKey)}
                 />
                 {expanded && stopMeta && (
@@ -241,8 +255,10 @@ export default function StopDetailPage() {
                     className="stop-detail__expand"
                     routeId={group.routeId}
                     direction={expandedDirection}
+                    mode={mode}
                     stop={{ lat: stopMeta.lat, lng: stopMeta.lng }}
                     nextArrivals={expandedFollowing}
+                    feedDown={feedDown}
                   />
                 )}
               </div>

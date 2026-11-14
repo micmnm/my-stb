@@ -42,13 +42,6 @@ export interface Favourite {
   lng: number;
 }
 
-export interface GeocodingResult {
-  displayName: string;
-  lat: number;
-  lng: number;
-  type: string | null;
-}
-
 export type RouteTypeLabel = 'bus' | 'tram' | 'trolley' | 'metro';
 
 export function routeTypeLabel(type: number): RouteTypeLabel {
@@ -89,13 +82,30 @@ export interface Arrival {
   destinationStopId: string;
   destinationName: string;
   etaSeconds: number;
+  /** Always equals `freshness === 'live'`. */
   isLive: boolean;
   isCancelled: boolean;
+  lat: number;
+  lng: number;
+  lastSeenSeconds: number;
+  freshness: Freshness;
+  isEstimate: true;
+}
+
+/** live ≤ 120 s since last report, stale 121..600 s; older vehicles are dropped server-side. */
+export type Freshness = 'live' | 'stale';
+
+export type FeedStatus = 'ok' | 'degraded' | 'down';
+
+export interface FeedHealth {
+  status: FeedStatus;
+  lastSuccessAt: string | null;
 }
 
 export interface ArrivalsResponse {
   stopId: string;
   serverTime: string;
+  feed: FeedHealth;
   arrivals: Arrival[];
 }
 
@@ -145,6 +155,8 @@ export interface VehicleDto {
   direction: Direction;
   updatedAt: number;
   isLive: boolean;
+  lastSeenSeconds: number;
+  freshness: Freshness;
   nextStopId: string | null;
   nextStopEtaSeconds: number | null;
 }
@@ -158,6 +170,7 @@ export interface RouteDetailResponse {
   vehicles: VehicleDto[];
   alerts: ServiceAlert[];
   serverTime: string;
+  feed: FeedHealth;
 }
 
 export interface NearbyStop {
@@ -264,8 +277,13 @@ export interface PlanResponse {
 }
 
 export interface PeekArrivals {
-  /** stopId → soonest arrivals (max 2 per stop, one per direction). */
+  /** stopId → soonest arrivals (max 2 per stop, one per route+direction, live-first). */
   [stopId: string]: { soonest: Arrival[] };
+}
+
+export interface PeekResponse {
+  feed: FeedHealth;
+  stops: PeekArrivals;
 }
 
 /** Map an STB GTFS route_type (or any numeric type) to our Mode token. */

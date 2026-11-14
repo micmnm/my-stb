@@ -5,12 +5,18 @@ import { SearchInput } from '../../components/molecules/SearchInput';
 import { StopRow } from '../../components/molecules/StopRow';
 import { SectionHeader } from '../../components/patterns/SectionHeader';
 import { RouteBadge } from '../../components/atoms/RouteBadge';
-import { IconLocationDot } from '../../components/icons';
+import { IconLocationDot, IconSearch } from '../../components/icons';
 import { api } from '../../api/client';
 import { useT } from '../../i18n/useT';
 import { useSaved } from '../../stores/saved';
 import { pushRecent, useRecents, type Recent } from '../../stores/recents';
-import { modeFromRouteType, type Mode, type SearchResponse, type SearchType } from '../../types';
+import {
+  modeFromRouteType,
+  type Mode,
+  type SearchAddressHit,
+  type SearchResponse,
+  type SearchType,
+} from '../../types';
 import './search.css';
 
 type Filter = 'all' | 'stops' | 'routes' | 'addresses';
@@ -37,8 +43,10 @@ export default function SearchPage() {
   const [results, setResults] = useState<SearchResponse | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<Error | null>(null);
-  const abortRef = useRef<AbortController | null>(null);
-  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [addrResult, setAddrResult] = useState<{ q: string; items: SearchAddressHit[] } | null>(null);
+  const [addrLoading, setAddrLoading] = useState(false);
+  const [addrError, setAddrError] = useState<Error | null>(null);
+  const addrAbortRef = useRef<AbortController | null>(null);
   const recents = useRecents();
   const { add: addSaved } = useSaved();
 
@@ -51,38 +59,51 @@ export default function SearchPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [query, filter]);
 
-  // Debounced fetch + AbortController.
+  // Debounced stops/routes fetch; addresses are only fetched on submit.
   useEffect(() => {
-    if (debounceRef.current) clearTimeout(debounceRef.current);
-    abortRef.current?.abort();
     const trimmed = query.trim();
-    if (trimmed === '') {
-      setResults(null);
-      setLoading(false);
-      setError(null);
-      return;
-    }
-    debounceRef.current = setTimeout(async () => {
-      const controller = new AbortController();
-      abortRef.current = controller;
+    if (trimmed === '' || filter === 'addresses') return;
+    const controller = new AbortController();
+    const timer = setTimeout(async () => {
       setLoading(true);
       try {
-        const types = filterToTypes(filter);
-        const resp = await api.search(trimmed, { types, limit: 30 }, controller.signal);
+        const resp = await api.search(trimmed, { types: filterToTypes(filter), limit: 30 }, controller.signal);
         setResults(resp);
         setError(null);
       } catch (e) {
         if ((e as { name?: string }).name === 'AbortError') return;
         setError(e instanceof Error ? e : new Error(String(e)));
       } finally {
-        setLoading(false);
+        if (!controller.signal.aborted) setLoading(false);
       }
     }, DEBOUNCE_MS);
 
     return () => {
-      if (debounceRef.current) clearTimeout(debounceRef.current);
+      clearTimeout(timer);
+      controller.abort();
     };
   }, [query, filter]);
+
+  const trimmedQuery = query.trim();
+  const canSearchAddresses = trimmedQuery.length >= 3;
+
+  const searchAddresses = async () => {
+    if (!canSearchAddresses) return;
+    addrAbortRef.current?.abort();
+    const controller = new AbortController();
+    addrAbortRef.current = controller;
+    setAddrLoading(true);
+    setAddrError(null);
+    try {
+      const resp = await api.search(trimmedQuery, { types: ['addresses'], limit: 30 }, controller.signal);
+      setAddrResult({ q: trimmedQuery, items: resp.addresses });
+    } catch (e) {
+      if ((e as { name?: string }).name === 'AbortError') return;
+      setAddrError(e instanceof Error ? e : new Error(String(e)));
+    } finally {
+      if (!controller.signal.aborted) setAddrLoading(false);
+    }
+  };
 
   const onSelectStop = (stop: { id: string; name: string; lat: number; lng: number }) => {
     pushRecent({ kind: 'stop', refId: stop.id, label: stop.name });
@@ -135,22 +156,32 @@ export default function SearchPage() {
   const showRecents = query.trim() === '';
   const showStopsSection = !!results && (filter === 'all' || filter === 'stops');
   const showRoutesSection = !!results && (filter === 'all' || filter === 'routes');
-  const showAddressesSection = !!results && (filter === 'all' || filter === 'addresses');
-  const noMatches = results !== null
-    && results.stops.length + results.routes.length + results.addresses.length === 0
-    && !loading;
+  const addrItems = addrResult && addrResult.q === trimmedQuery ? addrResult.items : null;
+  const showAddressRow = canSearchAddresses && intent !== 'save' && !addrLoading && addrItems === null;
+  const noMatches = filter !== 'addresses'
+    && results !== null
+    && results.stops.length + results.routes.length === 0
+    && !loading
+    && addrItems === null;
 
   return (
     <ScreenShell>
       <div className="search-page">
         <div className="search-page__input">
-          <SearchInput
-            value={query}
-            onChange={setQuery}
-            autoFocus
-            placeholder={t('search.placeholder')}
-            ariaLabel={t('search.placeholder')}
-          />
+          <form
+            onSubmit={e => {
+              e.preventDefault();
+              if (intent !== 'save') void searchAddresses();
+            }}
+          >
+            <SearchInput
+              value={query}
+              onChange={setQuery}
+              autoFocus
+              placeholder={t('search.placeholder')}
+              ariaLabel={t('search.placeholder')}
+            />
+          </form>
         </div>
 
         <div className="search-page__chips" role="tablist" aria-label="Filter">
@@ -239,16 +270,30 @@ export default function SearchPage() {
               </section>
             )}
 
-            {showAddressesSection && results
-              && results.addresses.length === 0 && error === null && query.trim().length >= 3 && (
-                <div className="search-page__inline-note">{t('search.geocoder_unavailable')}</div>
-              )}
+            {showAddressRow && (
+              <div className="search-page__list">
+                <button type="button" className="search-page__row" onClick={() => void searchAddresses()}>
+                  <span className="search-page__row-icon"><IconSearch size={20} /></span>
+                  <span className="search-page__row-text">
+                    <span className="search-page__row-name">{t('search.addresses_for', { q: trimmedQuery })}</span>
+                  </span>
+                </button>
+              </div>
+            )}
 
-            {showAddressesSection && results && results.addresses.length > 0 && intent !== 'save' && (
+            {addrError && (
+              <div className="search-page__inline-note">{t('search.geocoder_unavailable')}</div>
+            )}
+
+            {addrItems && addrItems.length === 0 && (
+              <div className="search-page__inline-note">{t('search.geocoder_unavailable')}</div>
+            )}
+
+            {addrItems && addrItems.length > 0 && (
               <section className="search-page__section">
                 <SectionHeader title={t('search.section_addresses')} />
                 <div className="search-page__list">
-                  {results.addresses.map(addr => (
+                  {addrItems.map(addr => (
                     <button
                       key={`${addr.lat},${addr.lng}`}
                       type="button"

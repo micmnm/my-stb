@@ -13,6 +13,8 @@ import { migrateLegacyFavouritesIfPresent, useSaved } from '../../stores/saved';
 import { api } from '../../api/client';
 import { modeFromRouteType, type Arrival, type Mode, type ServiceAlert } from '../../types';
 import { useT } from '../../i18n/useT';
+import { approxEta, feedDownTitle, formatClock, lastSeen } from '../../i18n/eta';
+import { AlertBanner } from '../../components/atoms/AlertBanner';
 import './home.css';
 
 function useClock(): string {
@@ -24,22 +26,20 @@ function useClock(): string {
   return `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
 }
 
-function formatPeekEta(seconds: number): string {
-  if (seconds <= 0) return '—';
-  if (seconds < 60) return '<1';
-  if (seconds < 3600) return String(Math.round(seconds / 60));
-  const d = new Date(Date.now() + seconds * 1000);
-  return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
-}
-
-function PeekArrival({ arrival }: { arrival: Arrival }) {
+function PeekArrival({ arrival, feedDown }: { arrival: Arrival; feedDown: boolean }) {
+  const t = useT();
   const mode = modeFromRouteType(arrival.routeType, arrival.shortName);
-  const eta = formatPeekEta(arrival.etaSeconds);
-  const cls = ['home__peek-eta', !arrival.isLive && 'home__peek-eta--not-live'].filter(Boolean).join(' ');
+  const stale = arrival.freshness === 'stale';
+  const label = stale ? lastSeen(t, arrival.lastSeenSeconds) : approxEta(t, arrival.etaSeconds);
+  const cls = ['home__peek-eta', (stale || feedDown) && 'home__peek-eta--stale', stale && 'home__peek-eta--seen']
+    .filter(Boolean).join(' ');
   return (
     <span className="home__peek-pair">
       <RouteBadge num={arrival.shortName} mode={mode} size="sm" />
-      <span className={cls}>{eta}</span>
+      <span className={cls}>
+        <span aria-hidden="true">{label.text}</span>
+        <span className="home__sr-only">{label.aria}</span>
+      </span>
     </span>
   );
 }
@@ -65,7 +65,16 @@ export default function HomePage() {
     () => savedStops.filter(s => !s.legacy).map(s => s.id),
     [savedStops],
   );
-  const { data: peek } = useStopArrivalPeek(peekIds);
+  // Saved lines filter the peek; with none saved, every route at the stop is eligible.
+  const peekRouteIds = useMemo(() => savedRoutes.map(r => r.id), [savedRoutes]);
+  const {
+    data: peek,
+    feed: peekFeed,
+    error: peekError,
+    lastUpdated: peekUpdated,
+    refetch: refetchPeek,
+  } = useStopArrivalPeek(peekIds, peekRouteIds);
+  const feedDown = peekFeed?.status === 'down';
 
   // Fetch all active alerts and intersect with saved IDs.
   useEffect(() => {
@@ -109,6 +118,25 @@ export default function HomePage() {
 
         <section className="home__section">
           <SectionHeader title={t('home.saved_section')} />
+          {feedDown && (
+            <div className="home__alert">
+              <AlertBanner severity="warning" title={feedDownTitle(t, peekFeed?.lastSuccessAt ?? null)} />
+            </div>
+          )}
+          {peekIds.length > 0 && (peekError || peekUpdated !== null) && (
+            <div className="home__peek-status" role="status">
+              {peekError ? (
+                <>
+                  <span>{t('home.peek_error')}</span>
+                  <button type="button" className="home__peek-retry" onClick={refetchPeek}>
+                    {t('errors.retry')}
+                  </button>
+                </>
+              ) : (
+                peekUpdated !== null && <span>{t('home.peek_updated', { time: formatClock(new Date(peekUpdated)) })}</span>
+              )}
+            </div>
+          )}
           {!hasSaved ? (
             <div className="home__empty-card">
               <p>{t('home.empty_saved')}</p>
@@ -144,7 +172,7 @@ export default function HomePage() {
                     {peekRows.length > 0 && (
                       <span className="home__peek">
                         {peekRows.slice(0, 2).map(a => (
-                          <PeekArrival key={a.vehicleId} arrival={a} />
+                          <PeekArrival key={a.vehicleId} arrival={a} feedDown={feedDown} />
                         ))}
                       </span>
                     )}

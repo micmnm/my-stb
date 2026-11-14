@@ -6,75 +6,123 @@ namespace MyStb.Api.Services;
 
 public class VehiclePollerService : BackgroundService
 {
+    public const string UserAgent = "MyStb/1.0 (+https://mystb.mltru.com)";
+    private static readonly TimeSpan PollTimeout = TimeSpan.FromSeconds(20);
+
     private readonly IServiceProvider _services;
     private readonly IConfiguration _config;
     private readonly ILogger<VehiclePollerService> _logger;
     private readonly IHttpClientFactory _httpFactory;
-    private DateTime _lastActivity = DateTime.MinValue;
+    private readonly TimeProvider _time;
+    private readonly TimeSpan _interval;
+    private readonly FeedHealth _health;
+    private readonly SemaphoreSlim _wake = new(0, 1);
 
-    public VehiclePollerService(IServiceProvider services, IConfiguration config, ILogger<VehiclePollerService> logger, IHttpClientFactory httpFactory)
+    public VehiclePollerService(IServiceProvider services, IConfiguration config, ILogger<VehiclePollerService> logger, IHttpClientFactory httpFactory, TimeProvider? time = null)
     {
         _services = services;
         _config = config;
         _logger = logger;
         _httpFactory = httpFactory;
+        _time = time ?? TimeProvider.System;
+        _interval = TimeSpan.FromSeconds(config.GetValue("MoBiRo:PollIntervalSeconds", 30));
+        _health = new FeedHealth(_interval);
     }
 
     /// <summary>
     /// Call from middleware on every /api request to signal user activity.
+    /// After an idle period this triggers an immediate poll.
     /// </summary>
-    public void Touch() => _lastActivity = DateTime.UtcNow;
+    public void Touch()
+    {
+        if (!_health.Touch(_time.GetUtcNow())) return;
+        try { _wake.Release(); }
+        catch (SemaphoreFullException) { }
+    }
 
-    public bool IsActive => DateTime.UtcNow - _lastActivity < TimeSpan.FromMinutes(2);
+    public bool IsActive => _health.IsActive(_time.GetUtcNow());
+    public DateTimeOffset? LastSuccessUtc => _health.LastSuccessUtc;
+    public DateTimeOffset? LastAttemptUtc => _health.LastAttemptUtc;
+    public int ConsecutiveFailures => _health.ConsecutiveFailures;
+
+    public FeedStatus GetFeedStatus() => _health.Snapshot(_time.GetUtcNow());
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        var intervalSeconds = _config.GetValue("MoBiRo:PollIntervalSeconds", 30);
-
         while (!stoppingToken.IsCancellationRequested)
         {
             if (IsActive)
             {
-                try
-                {
-                    await PollVehicles(stoppingToken);
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogError(ex, "Vehicle poll failed");
-                }
+                await PollOnceAsync(stoppingToken);
             }
             else
             {
                 _logger.LogDebug("Skipping vehicle poll — no active users");
             }
 
-            await Task.Delay(TimeSpan.FromSeconds(intervalSeconds), stoppingToken);
+            try
+            {
+                await _wake.WaitAsync(_interval, stoppingToken);
+            }
+            catch (OperationCanceledException)
+            {
+                break;
+            }
         }
     }
 
-    private async Task PollVehicles(CancellationToken ct)
+    /// <summary>Fetches and stores one feed snapshot; false when the attempt failed.</summary>
+    public async Task<bool> PollOnceAsync(CancellationToken ct)
     {
-        var url = _config["MoBiRo:BusDataUrl"]!;
-        var http = _httpFactory.CreateClient();
+        try
+        {
+            var url = _config["MoBiRo:BusDataUrl"]!;
+            _logger.LogDebug("Polling vehicle positions from {Url}", url);
 
-        _logger.LogDebug("Polling vehicle positions from {Url}", url);
-        var json = await http.GetStringAsync(url, ct);
+            using var timeout = CancellationTokenSource.CreateLinkedTokenSource(ct);
+            timeout.CancelAfter(PollTimeout);
+            using var request = new HttpRequestMessage(HttpMethod.Get, url);
+            request.Headers.UserAgent.ParseAdd(UserAgent);
+            using var response = await _httpFactory.CreateClient().SendAsync(request, timeout.Token);
+            response.EnsureSuccessStatusCode();
+            var json = await response.Content.ReadAsStringAsync(timeout.Token);
 
+            using var scope = _services.CreateScope();
+            var db = scope.ServiceProvider.GetRequiredService<IDbConnection>();
+            var result = ApplyFeed(db, json, _time.GetUtcNow().ToUnixTimeSeconds());
+            _health.RecordSuccess(_time.GetUtcNow());
+
+            if (result.Skipped > 0)
+                _logger.LogInformation("Vehicle poll: upserted {Up}, skipped {Skip}, pruned {Pruned}", result.Upserted, result.Skipped, result.Pruned);
+            else
+                _logger.LogInformation("Upserted {Count} vehicle positions, pruned {Pruned}", result.Upserted, result.Pruned);
+            return true;
+        }
+        catch (OperationCanceledException) when (ct.IsCancellationRequested)
+        {
+            throw;
+        }
+        catch (Exception ex)
+        {
+            _health.RecordFailure(_time.GetUtcNow());
+            _logger.LogError(ex, "Vehicle poll failed ({Failures} in a row)", _health.ConsecutiveFailures);
+            return false;
+        }
+    }
+
+    public record ApplyResult(int Upserted, int Skipped, int Pruned);
+
+    /// <summary>Upserts a busData payload, then deletes vehicles past the hide threshold.</summary>
+    public static ApplyResult ApplyFeed(IDbConnection db, string json, long nowUnix)
+    {
         using var doc = JsonDocument.Parse(json);
         var root = doc.RootElement;
-
         if (root.ValueKind != JsonValueKind.Array)
-        {
-            _logger.LogWarning("Vehicle feed root was {Kind}, expected Array — skipping poll", root.ValueKind);
-            return;
-        }
+            throw new InvalidDataException($"Vehicle feed root was {root.ValueKind}, expected Array");
 
-        using var scope = _services.CreateScope();
-        var db = scope.ServiceProvider.GetRequiredService<IDbConnection>();
-        var now = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
         var upserted = 0;
         var skipped = 0;
+        using var tx = db.BeginTransaction();
 
         foreach (var item in root.EnumerateArray())
         {
@@ -108,25 +156,21 @@ public class VehiclePollerService : BackgroundService
                         parsed.DirectionId,
                         parsed.LicensePlate,
                         parsed.Timestamp,
-                        UpdatedAt = now,
-                    });
+                        UpdatedAt = nowUnix,
+                    }, tx);
                 upserted++;
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                _logger.LogWarning(ex, "Vehicle upsert failed for {Id}", parsed.Id);
                 skipped++;
             }
         }
 
-        if (skipped > 0)
-        {
-            _logger.LogInformation("Vehicle poll: upserted {Up}, skipped {Skip}", upserted, skipped);
-        }
-        else
-        {
-            _logger.LogInformation("Upserted {Count} vehicle positions", upserted);
-        }
+        var pruned = db.Execute(
+            $"DELETE FROM vehicles WHERE {VehicleFreshness.ReportedAtSql} < @Since",
+            new { Since = VehicleFreshness.VisibleSince(nowUnix) }, tx);
+        tx.Commit();
+        return new ApplyResult(upserted, skipped, pruned);
     }
 
     private record ParsedVehicle(string Id, string RouteId, double Lat, double Lng, int DirectionId, string? LicensePlate, long Timestamp);
@@ -151,10 +195,8 @@ public class VehiclePollerService : BackgroundService
             licensePlate = lp;
         }
 
-        if (!TryGetLong(vehicle, "timestamp", out var ts))
-        {
-            ts = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
-        }
+        // 0 = unknown report time; readers fall back to updated_at.
+        var ts = TryGetLong(vehicle, "timestamp", out var raw) ? VehicleFreshness.NormalizeFeedTimestamp(raw) : 0;
 
         return new ParsedVehicle(id!, routeId!, lat, lng, directionId, licensePlate, ts);
     }

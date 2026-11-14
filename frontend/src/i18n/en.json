@@ -10,6 +10,19 @@
   "home.empty_saved": "Save the stops you use most.",
   "home.enable_location": "Turn on location",
   "home.see_more": "See more",
+  "home.peek_updated": "updated {time}",
+  "home.peek_error": "Couldn't load arrivals.",
+
+  "eta.approx_min": "~{n} min",
+  "eta.approx_min_aria": "{n, plural, one {about # minute} other {about # minutes}}",
+  "eta.min_unit": "min",
+  "eta.last_seen": "last seen {n} min ago",
+  "eta.last_seen_aria": "{n, plural, one {last seen # minute ago} other {last seen # minutes ago}}",
+
+  "map.aria": "{n, plural, =0 {Map: no buses approaching} one {Map: 1 bus approaching} other {Map: # buses approaching}}",
+  "map.dot_tooltip": "~{n} min · seen {s}s ago",
+  "map.activate": "Tap to move the map",
+  "map.lock": "Lock map",
 
   "search.placeholder": "Search a stop, line, or address",
   "search.recent": "Recent",
@@ -25,6 +38,7 @@
   "search.geocoder_unavailable": "Addresses unavailable right now.",
   "search.save_hint": "Tap to save.",
   "search.use_my_location": "Use my location",
+  "search.addresses_for": "Search addresses for “{q}”",
 
   "stop_detail.arrivals": "Arrivals",
   "stop_detail.both_dirs": "both directions",
@@ -105,10 +119,24 @@
   "saved.unavailable": "Unavailable",
   "saved.unavailable_remove": "Remove",
   "saved.rename_placeholder": "Nickname",
+  "saved.export": "Export",
+  "saved.import": "Import",
+  "saved.import_preview": "{count} items found in file.",
+  "saved.import_merge": "Merge",
+  "saved.import_replace": "Replace",
+  "saved.import_cancel": "Cancel",
+  "saved.import_invalid": "That file isn't a valid My STB export.",
+  "saved.import_too_large": "File is too large (max 256 KB).",
+  "saved.import_done": "Imported {count} items.",
+  "saved.storage_full": "Couldn't save: device storage is full.",
+  "saved.privacy": "Anonymous page-view counts via GoatCounter, no cookies.",
 
   "errors.offline": "Offline. Showing last known data.",
   "errors.retry": "Retry",
   "errors.feed_down": "STB isn't responding. Retrying automatically.",
+  "errors.feed_down_since": "Live positions unavailable since {time}",
+  "errors.feed_down_unknown": "Live positions unavailable",
+  "errors.rate_limited": "Too many requests, try again shortly.",
 
   "permissions.location_denied": "Turn on location to see nearby stops."
 }

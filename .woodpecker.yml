@@ -12,6 +12,7 @@ steps:
     commands:
       - cd frontend
       - npm ci
+      - npm run lint
       - npm run build
 
   - name: backend-check
@@ -48,12 +49,10 @@ steps:
         from_secret: ghcr_user
       GHCR_TOKEN:
         from_secret: ghcr_token
-      VITE_API_KEY:
-        from_secret: mystb_api_key
     commands:
       - TAG=$(date +%Y%m%d)-${CI_PIPELINE_NUMBER}
       - echo "$GHCR_TOKEN" | docker login ghcr.io -u "$GHCR_USER" --password-stdin
-      - docker build --build-arg VITE_API_KEY="$VITE_API_KEY" -t ghcr.io/micmnm/my-stb-front:$TAG -t ghcr.io/micmnm/my-stb-front:latest -f frontend/Dockerfile frontend/
+      - docker build -t ghcr.io/micmnm/my-stb-front:$TAG -t ghcr.io/micmnm/my-stb-front:latest -f frontend/Dockerfile frontend/
       - docker push ghcr.io/micmnm/my-stb-front:$TAG
       - docker push ghcr.io/micmnm/my-stb-front:latest
 

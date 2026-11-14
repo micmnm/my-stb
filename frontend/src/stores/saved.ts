@@ -20,16 +20,62 @@ export interface SavedItem {
 
 const STORAGE_KEY = 'mystb.saved';
 const LEGACY_KEY = 'mystb-favourites';
+const MIGRATED_KEY = 'mystb.migrated';
+const STORAGE_VERSION = 1;
 const listeners = new Set<() => void>();
+const errorListeners = new Set<(e: 'quota') => void>();
 
 interface LegacyFavourite { id: string; name: string; lat: number; lng: number; }
 
+/** Subscribe to storage write failures (e.g. quota exceeded). */
+export function onSavedStorageError(fn: (e: 'quota') => void): () => void {
+  errorListeners.add(fn);
+  return () => { errorListeners.delete(fn); };
+}
+
+/** Returns a clean SavedItem, or null when the shape is invalid. */
+export function sanitizeItem(raw: unknown, fallbackOrder = 0): SavedItem | null {
+  if (!raw || typeof raw !== 'object') return null;
+  const r = raw as Record<string, unknown>;
+  if ((r.kind !== 'stop' && r.kind !== 'route') || typeof r.id !== 'string' || !r.id) return null;
+  const item: SavedItem = {
+    kind: r.kind,
+    id: r.id,
+    order: typeof r.order === 'number' && Number.isFinite(r.order) ? r.order : fallbackOrder,
+    addedAt: typeof r.addedAt === 'string' ? r.addedAt : new Date().toISOString(),
+  };
+  if (typeof r.nickname === 'string') item.nickname = r.nickname;
+  if (typeof r.name === 'string') item.name = r.name;
+  if (typeof r.shortName === 'string') item.shortName = r.shortName;
+  if (typeof r.mode === 'string') item.mode = r.mode as Mode;
+  const lg = r.legacy as Record<string, unknown> | undefined;
+  if (lg && typeof lg.lat === 'number' && typeof lg.lng === 'number' && typeof lg.name === 'string') {
+    item.legacy = { lat: lg.lat, lng: lg.lng, name: lg.name };
+  }
+  return item;
+}
+
+export function sanitizeItems(raw: unknown[]): SavedItem[] {
+  const out: SavedItem[] = [];
+  raw.forEach((r, i) => {
+    const item = sanitizeItem(r, i);
+    if (item && !out.some(o => o.kind === item.kind && o.id === item.id)) out.push(item);
+  });
+  return out;
+}
+
+// Accepts the versioned wrapper or the old bare array.
 function readStored(): SavedItem[] {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) return [];
-    const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) ? parsed : [];
+    const parsed: unknown = JSON.parse(raw);
+    const list = Array.isArray(parsed)
+      ? parsed
+      : parsed && typeof parsed === 'object' && Array.isArray((parsed as { items?: unknown }).items)
+        ? (parsed as { items: unknown[] }).items
+        : [];
+    return sanitizeItems(list);
   } catch {
     return [];
   }
@@ -38,11 +84,31 @@ function readStored(): SavedItem[] {
 function writeStored(items: SavedItem[]): void {
   cache = items;
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({ version: STORAGE_VERSION, items }));
   } catch {
-    /* quota — non-fatal */
+    errorListeners.forEach(fn => fn('quota'));
   }
   listeners.forEach(fn => fn());
+}
+
+/** Replace the whole list (import). Order is renumbered per kind. */
+export function replaceAll(items: SavedItem[]): void {
+  writeStored(renumber(byOrder(items)));
+}
+
+/** Merge imported items: dedupe by kind+id, existing entries (and nicknames) win. */
+export function mergeItems(incoming: SavedItem[]): void {
+  const added = incoming.filter(n => !isSaved(n.kind, n.id));
+  writeStored(renumber([...byOrder(cache), ...byOrder(added)]));
+}
+
+function byOrder(items: SavedItem[]): SavedItem[] {
+  return [...items].sort((a, b) => a.order - b.order);
+}
+
+function renumber(items: SavedItem[]): SavedItem[] {
+  const counters: Record<SavedKind, number> = { stop: 0, route: 0 };
+  return items.map(i => ({ ...i, order: counters[i.kind]++ }));
 }
 
 let cache: SavedItem[] = readStored();
@@ -142,15 +208,24 @@ export async function migrateLegacyFavouritesIfPresent(
 ): Promise<void> {
   if (migrationStarted) return;
   migrationStarted = true;
+  try {
+    if (localStorage.getItem(MIGRATED_KEY)) return;
+  } catch { return; }
 
   const raw = localStorage.getItem(LEGACY_KEY);
-  if (!raw) return;
+  if (!raw) {
+    markMigrated();
+    return;
+  }
   let legacy: LegacyFavourite[] = [];
   try { legacy = JSON.parse(raw); } catch { /* ignore */ }
   if (!Array.isArray(legacy) || legacy.length === 0) {
     localStorage.removeItem(LEGACY_KEY);
+    markMigrated();
     return;
   }
+  legacy = legacy.filter(f => f && typeof f.id === 'string' && typeof f.name === 'string'
+    && typeof f.lat === 'number' && typeof f.lng === 'number');
 
   const migrated: SavedItem[] = [...cache];
 
@@ -181,4 +256,9 @@ export async function migrateLegacyFavouritesIfPresent(
 
   writeStored(migrated);
   localStorage.removeItem(LEGACY_KEY);
+  markMigrated();
+}
+
+function markMigrated(): void {
+  try { localStorage.setItem(MIGRATED_KEY, '1'); } catch { /* non-fatal */ }
 }

@@ -1,7 +1,10 @@
-import { lazy, Suspense, useEffect, useRef } from 'react';
+import { lazy, Suspense, useEffect, useRef, useState } from 'react';
 import { BrowserRouter, Navigate, Route, Routes, useLocation } from 'react-router-dom';
 import { ScreenShell } from '../components/layout/ScreenShell';
 import { Skeleton } from '../components/atoms/Skeleton';
+import { Toast } from '../components/atoms/Toast';
+import { onRateLimited } from '../api/client';
+import { useT } from '../i18n/useT';
 import '../components/layout/layout.css';
 
 const HomePage = lazy(() => import('../pages/home'));
@@ -10,7 +13,6 @@ const PlanPage = lazy(() => import('../pages/plan'));
 const SavedPage = lazy(() => import('../pages/saved'));
 const StopDetailPage = lazy(() => import('../pages/stop-detail'));
 const RouteDetailPage = lazy(() => import('../pages/route-detail'));
-const LegacyApp = lazy(() => import('../pages/legacy/LegacyApp'));
 const DevComponentsPage = lazy(() => import('../pages/dev-components'));
 
 function PageFallback() {
@@ -40,10 +42,19 @@ function PageViews() {
   return null;
 }
 
+function RateLimitToast() {
+  const t = useT();
+  const [shown, setShown] = useState(false);
+  useEffect(() => onRateLimited(() => setShown(true)), []);
+  if (!shown) return null;
+  return <Toast message={t('errors.rate_limited')} onDismiss={() => setShown(false)} />;
+}
+
 export function AppRoutes() {
   return (
     <BrowserRouter>
       <PageViews />
+      <RateLimitToast />
       <Suspense fallback={<PageFallback />}>
         <Routes>
           <Route path="/" element={<HomePage />} />
@@ -52,7 +63,6 @@ export function AppRoutes() {
           <Route path="/saved" element={<SavedPage />} />
           <Route path="/stop/:id" element={<StopDetailPage />} />
           <Route path="/route/:id" element={<RouteDetailPage />} />
-          <Route path="/legacy" element={<LegacyApp />} />
           {import.meta.env.DEV && (
             <Route path="/dev/components" element={<DevComponentsPage />} />
           )}

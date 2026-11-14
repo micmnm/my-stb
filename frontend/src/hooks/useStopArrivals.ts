@@ -1,15 +1,16 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { api } from '../api/client';
-import type { ArrivalsResponse } from '../types';
+import type { ArrivalsResponse, FeedHealth } from '../types';
 
 const POLL_MS = 15_000;
-const STALE_MS = 60_000;
 
 export interface UseStopArrivalsResult {
   data: ArrivalsResponse | null;
   error: Error | null;
   isLoading: boolean;
-  isStale: boolean;
+  feed: FeedHealth | null;
+  /** Server reports the upstream vehicle feed as down; all ETAs are untrustworthy. */
+  feedDown: boolean;
   lastUpdated: number | null;
   refetch: () => void;
 }
@@ -78,7 +79,8 @@ export function useStopArrivals(stopId: string | undefined): UseStopArrivalsResu
     };
   }, [stopId, tick]);
 
-  const isStale = !!data && Date.now() - new Date(data.serverTime).getTime() > STALE_MS;
+  const feed = data?.feed ?? null;
+  const feedDown = feed?.status === 'down';
 
-  return { data, error, isLoading, isStale, lastUpdated, refetch };
+  return { data, error, isLoading, feed, feedDown, lastUpdated, refetch };
 }
