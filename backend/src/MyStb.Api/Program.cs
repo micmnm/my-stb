@@ -1,4 +1,7 @@
 using System.Data;
+using System.Threading.RateLimiting;
+using Microsoft.AspNetCore.HttpOverrides;
+using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Data.Sqlite;
 using MyStb.Api;
 using MyStb.Api.Database;
@@ -31,11 +34,35 @@ builder.Services.AddSingleton<GtfsLoaderService>();
 builder.Services.AddSingleton<VehiclePollerService>();
 builder.Services.AddHostedService(sp => sp.GetRequiredService<VehiclePollerService>());
 
+builder.Services.AddMemoryCache();
 builder.Services.AddSingleton<IGeocodingProvider>(sp =>
 {
     var http = sp.GetRequiredService<IHttpClientFactory>().CreateClient();
     var baseUrl = builder.Configuration["Geocoding:NominatimBaseUrl"]!;
-    return new NominatimProvider(http, baseUrl);
+    return new NominatimProvider(http, baseUrl, sp.GetRequiredService<IMemoryCache>(),
+        sp.GetRequiredService<ILogger<NominatimProvider>>());
+});
+
+builder.WebHost.ConfigureKestrel(o => o.Limits.MaxRequestBodySize = 16 * 1024);
+builder.Services.AddProblemDetails();
+
+builder.Services.Configure<ForwardedHeadersOptions>(o => RateLimiting.ConfigureForwardedHeaders(
+    o, builder.Configuration.GetSection("ForwardedHeaders:KnownNetworks").Get<string[]>() ?? []));
+
+var (generalLimit, expensiveLimit) = RateLimiting.ReadLimits(builder.Configuration);
+builder.Services.AddRateLimiter(o =>
+{
+    o.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+    o.GlobalLimiter = PartitionedRateLimiter.Create<HttpContext, string>(c => RateLimiting.General(c, generalLimit));
+    o.AddPolicy(RateLimiting.ExpensivePolicy, c => RateLimiting.Expensive(c, expensiveLimit));
+    o.OnRejected = (ctx, _) =>
+    {
+        var seconds = ctx.Lease.TryGetMetadata(MetadataName.RetryAfter, out var retry)
+            ? Math.Max(1, (int)Math.Ceiling(retry.TotalSeconds))
+            : 60;
+        ctx.HttpContext.Response.Headers.RetryAfter = seconds.ToString(System.Globalization.CultureInfo.InvariantCulture);
+        return ValueTask.CompletedTask;
+    };
 });
 
 builder.Services.AddSingleton<IAlertsProvider>(sp =>
@@ -60,36 +87,23 @@ using (var scope = app.Services.CreateScope())
     DbInitializer.Initialize(db);
 }
 
-app.Use(async (ctx, next) =>
-{
-    if (ctx.Request.Path.StartsWithSegments("/api"))
-    {
-        var expectedKey = app.Configuration["ApiKey"];
-        if (!string.IsNullOrEmpty(expectedKey))
-        {
-            var providedKey = ctx.Request.Headers["X-Api-Key"].FirstOrDefault();
-            if (providedKey != expectedKey)
-            {
-                ctx.Response.StatusCode = 401;
-                await ctx.Response.WriteAsync("Unauthorized");
-                return;
-            }
-        }
-    }
-    await next();
-});
+app.UseForwardedHeaders();
+app.UseExceptionHandler();
+app.UseRouting();
+app.UseCors();
+app.UseRateLimiter();
 
+// Runs only for requests that matched an endpoint and passed the limiter,
+// so 404s and 429s don't keep the poller awake.
 app.Use(async (ctx, next) =>
 {
-    if (ctx.Request.Path.StartsWithSegments("/api"))
+    if (ctx.GetEndpoint() is not null && ctx.Request.Path.StartsWithSegments("/api"))
     {
         ctx.RequestServices.GetRequiredService<VehiclePollerService>().Touch();
         await ctx.RequestServices.GetRequiredService<GtfsLoaderService>().EnsureLoadedAsync(ctx.RequestAborted);
     }
     await next();
 });
-
-app.UseCors();
 
 app.MapGet("/healthz", () => "ok");
 app.MapStopEndpoints();

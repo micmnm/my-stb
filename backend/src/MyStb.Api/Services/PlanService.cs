@@ -134,13 +134,13 @@ public class PlanService
         if (options.Count == 0) return [];
         var routeIds = options.Select(o => o.RouteId).Distinct().ToList();
         var rows = db.Query<(string RouteId, long DirectionId, long UpdatedAt)>(
-            """
-            SELECT route_id AS RouteId, direction_id AS DirectionId, MAX(updated_at) AS UpdatedAt
+            $"""
+            SELECT route_id AS RouteId, direction_id AS DirectionId, MAX({VehicleFreshness.ReportedAtSql}) AS UpdatedAt
             FROM vehicles
-            WHERE route_id IN @RouteIds
+            WHERE route_id IN @RouteIds AND {VehicleFreshness.ReportedAtSql} >= @Since
             GROUP BY route_id, direction_id
             """,
-            new { RouteIds = routeIds }).ToList();
+            new { RouteIds = routeIds, Since = VehicleFreshness.VisibleSince(nowUnix) }).ToList();
         return rows
             .Where(r => nowUnix - r.UpdatedAt <= LiveThresholdSeconds)
             .Select(r => (r.RouteId, (int)r.DirectionId))

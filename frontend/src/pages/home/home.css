@@ -147,6 +147,41 @@
 
 .home__peek-eta--stale { color: var(--fg-3); }
 .home__peek-eta--not-live { color: var(--fg-1); }
+.home__peek-eta--seen {
+  font-family: var(--font-sans);
+  font-weight: var(--fw-medium);
+  font-size: var(--fs-xs);
+}
+
+.home__peek-status {
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+  padding: 0 var(--s-4);
+  font-size: var(--fs-xs);
+  color: var(--fg-3);
+}
+
+.home__peek-retry {
+  appearance: none;
+  border: none;
+  background: transparent;
+  color: var(--stb-red);
+  font: inherit;
+  font-weight: var(--fw-semibold);
+  min-height: 44px;
+  padding: 0 var(--s-2);
+  cursor: pointer;
+}
+
+.home__sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
 
 .home__skeleton-row {
   display: flex;

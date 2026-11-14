@@ -1,33 +1,37 @@
 import { useEffect, useRef, useState } from 'react';
 import { api } from '../api/client';
-import type { PeekArrivals } from '../types';
+import type { FeedHealth, PeekArrivals } from '../types';
 
 const POLL_MS = 30_000;
+const EMPTY: PeekArrivals = {};
 
 export interface UseStopArrivalPeekResult {
+  /** stopId → soonest arrivals. */
   data: PeekArrivals;
+  feed: FeedHealth | null;
   isLoading: boolean;
   error: Error | null;
   lastUpdated: number | null;
   refetch: () => void;
 }
 
-export function useStopArrivalPeek(stopIds: string[]): UseStopArrivalPeekResult {
-  const [data, setData] = useState<PeekArrivals>({});
+/** `routeIds` non-empty restricts every stop's peek to those routes (server-side). */
+export function useStopArrivalPeek(stopIds: string[], routeIds: string[] = []): UseStopArrivalPeekResult {
+  const [data, setData] = useState<PeekArrivals>(EMPTY);
+  const [feed, setFeed] = useState<FeedHealth | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<Error | null>(null);
   const [lastUpdated, setLastUpdated] = useState<number | null>(null);
   const [tick, setTick] = useState(0);
   const abortRef = useRef<AbortController | null>(null);
 
-  // Stable key so we don't re-fetch when array reference changes.
+  // Stable keys so we don't re-fetch when array references change.
   const key = stopIds.slice().sort().join(',');
+  const routeKey = routeIds.slice().sort().join(',');
+  const enabled = stopIds.length > 0;
 
   useEffect(() => {
-    if (stopIds.length === 0) {
-      setData({});
-      return;
-    }
+    if (!enabled) return;
 
     let cancelled = false;
     let timer: ReturnType<typeof setInterval> | null = null;
@@ -38,9 +42,10 @@ export function useStopArrivalPeek(stopIds: string[]): UseStopArrivalPeekResult 
       abortRef.current = controller;
       setIsLoading(true);
       try {
-        const next = await api.peekArrivals(stopIds, controller.signal);
+        const next = await api.peekArrivals(stopIds, routeIds, controller.signal);
         if (cancelled) return;
-        setData(next);
+        setData(next.stops);
+        setFeed(next.feed);
         setError(null);
         setLastUpdated(Date.now());
       } catch (e) {
@@ -73,13 +78,15 @@ export function useStopArrivalPeek(stopIds: string[]): UseStopArrivalPeekResult 
       document.removeEventListener('visibilitychange', onVisibility);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [key, tick]);
+  }, [key, routeKey, enabled, tick]);
 
+  // Derived rather than reset in the effect when there is nothing to peek.
   return {
-    data,
-    isLoading,
-    error,
-    lastUpdated,
+    data: enabled ? data : EMPTY,
+    feed: enabled ? feed : null,
+    isLoading: enabled && isLoading,
+    error: enabled ? error : null,
+    lastUpdated: enabled ? lastUpdated : null,
     refetch: () => setTick(t => t + 1),
   };
 }

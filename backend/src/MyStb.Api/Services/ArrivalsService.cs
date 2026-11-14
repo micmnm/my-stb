@@ -6,8 +6,8 @@ namespace MyStb.Api.Services;
 public class ArrivalsService
 {
     private const double AverageSpeedMps = 5.0; // ~18 km/h, accounts for stops
-    private const int LiveThresholdSeconds = 90;
     private const int MaxPerDirection = 5;
+    private const int PeekPerStop = 2;
 
     public record Arrival(
         string RouteId,
@@ -20,9 +20,15 @@ public class ArrivalsService
         string DestinationName,
         int EtaSeconds,
         bool IsLive,
-        bool IsCancelled);
+        bool IsCancelled,
+        double Lat,
+        double Lng,
+        int LastSeenSeconds,
+        string Freshness,
+        bool IsEstimate);
 
-    public record ArrivalsResponse(string StopId, string ServerTime, List<Arrival> Arrivals);
+    public record ArrivalsResponse(string StopId, string ServerTime, FeedStatus? Feed, List<Arrival> Arrivals);
+    public record PeekStop(List<Arrival> Soonest);
 
     public record StopWithRoutes(string Id, string Name, double Lat, double Lng, List<RouteSummary> Routes);
     public record RouteSummary(string Id, string ShortName, int RouteType);
@@ -31,7 +37,7 @@ public class ArrivalsService
     private record StopRow(string Id, string Name, double Lat, double Lng);
     private record ServingRouteRow(string RouteId, string ShortName, long RouteType, long DirectionId, long StopSequence);
     private record RouteStopRow(string StopId, string Name, double Lat, double Lng, long StopSequence);
-    private record VehicleRow(string Id, string RouteId, double Lat, double Lng, long DirectionId, long UpdatedAt);
+    private record VehicleRow(string Id, string RouteId, double Lat, double Lng, long DirectionId, long Timestamp, long UpdatedAt);
 
     public StopWithRoutes? GetStop(IDbConnection db, string stopId)
     {
@@ -54,7 +60,31 @@ public class ArrivalsService
         return new StopWithRoutes(stop.Id, stop.Name, stop.Lat, stop.Lng, routes);
     }
 
-    public ArrivalsResponse? GetArrivals(IDbConnection db, string stopId, long nowUnix)
+    /// <summary>
+    /// Per stop: the soonest arrival per (route, direction), live before stale,
+    /// at most <see cref="PeekPerStop"/>. A non-empty <paramref name="routeIds"/> restricts routes.
+    /// </summary>
+    public Dictionary<string, PeekStop> Peek(IDbConnection db, IEnumerable<string> stopIds, IReadOnlyCollection<string>? routeIds, long nowUnix)
+    {
+        var routeFilter = routeIds is { Count: > 0 } ? routeIds.ToHashSet() : null;
+        var result = new Dictionary<string, PeekStop>();
+        foreach (var id in stopIds.Distinct())
+        {
+            var resp = GetArrivals(db, id, nowUnix, routeFilter);
+            var soonest = (resp?.Arrivals ?? [])
+                .GroupBy(a => (a.RouteId, a.Direction))
+                .Select(g => g.OrderBy(StaleRank).ThenBy(a => a.EtaSeconds).First())
+                .OrderBy(StaleRank).ThenBy(a => a.EtaSeconds)
+                .Take(PeekPerStop)
+                .ToList();
+            result[id] = new PeekStop(soonest);
+        }
+        return result;
+    }
+
+    private static int StaleRank(Arrival a) => a.IsLive ? 0 : 1;
+
+    public ArrivalsResponse? GetArrivals(IDbConnection db, string stopId, long nowUnix, ISet<string>? routeFilter = null)
     {
         var stop = db.QueryFirstOrDefault<StopRow>(
             "SELECT id AS Id, name AS Name, lat AS Lat, lng AS Lng FROM stops WHERE id = @Id",
@@ -74,8 +104,11 @@ public class ArrivalsService
             """,
             new { StopId = stopId }).ToList();
 
+        if (routeFilter is not null)
+            serving = serving.Where(s => routeFilter.Contains(s.RouteId)).ToList();
+
         if (serving.Count == 0)
-            return new ArrivalsResponse(stopId, FormatServerTime(nowUnix), []);
+            return new ArrivalsResponse(stopId, FormatServerTime(nowUnix), null, []);
 
         var arrivals = new List<Arrival>();
 
@@ -100,13 +133,14 @@ public class ArrivalsService
             var terminus = stopsInDirection[^1];
 
             var vehicles = db.Query<VehicleRow>(
-                """
+                $"""
                 SELECT id AS Id, route_id AS RouteId, lat AS Lat, lng AS Lng,
-                       direction_id AS DirectionId, updated_at AS UpdatedAt
+                       direction_id AS DirectionId, timestamp AS Timestamp, updated_at AS UpdatedAt
                 FROM vehicles
                 WHERE route_id = @RouteId AND direction_id = @DirectionId
+                  AND {VehicleFreshness.ReportedAtSql} >= @Since
                 """,
-                new { leg.RouteId, leg.DirectionId }).ToList();
+                new { leg.RouteId, leg.DirectionId, Since = VehicleFreshness.VisibleSince(nowUnix) }).ToList();
 
             var perDirection = new List<Arrival>();
 
@@ -119,7 +153,9 @@ public class ArrivalsService
                 var meters = DistanceAlongRoute(stopsInDirection, vehicleSeq.Value, (int)leg.StopSequence)
                              + distanceFromVehicleToVehicleStop;
                 var etaSeconds = Math.Max(0, (int)Math.Round(meters / AverageSpeedMps));
-                var isLive = (nowUnix - v.UpdatedAt) <= LiveThresholdSeconds;
+                var reported = VehicleFreshness.ReportedAt(v.Timestamp, v.UpdatedAt);
+                var freshness = VehicleFreshness.Of(reported, nowUnix);
+                if (freshness == Freshness.Expired) continue;
 
                 perDirection.Add(new Arrival(
                     RouteId: leg.RouteId,
@@ -131,17 +167,22 @@ public class ArrivalsService
                     DestinationStopId: terminus.StopId,
                     DestinationName: terminus.Name,
                     EtaSeconds: etaSeconds,
-                    IsLive: isLive,
-                    IsCancelled: false));
+                    IsLive: freshness == Freshness.Live,
+                    IsCancelled: false,
+                    Lat: v.Lat,
+                    Lng: v.Lng,
+                    LastSeenSeconds: VehicleFreshness.AgeSeconds(reported, nowUnix),
+                    Freshness: VehicleFreshness.ToWire(freshness),
+                    IsEstimate: true));
             }
 
             arrivals.AddRange(perDirection
-                .OrderBy(a => a.EtaSeconds)
+                .OrderBy(StaleRank).ThenBy(a => a.EtaSeconds)
                 .Take(MaxPerDirection));
         }
 
-        arrivals = arrivals.OrderBy(a => a.EtaSeconds).ToList();
-        return new ArrivalsResponse(stopId, FormatServerTime(nowUnix), arrivals);
+        arrivals = arrivals.OrderBy(StaleRank).ThenBy(a => a.EtaSeconds).ToList();
+        return new ArrivalsResponse(stopId, FormatServerTime(nowUnix), null, arrivals);
     }
 
     private static string FormatServerTime(long unix) =>

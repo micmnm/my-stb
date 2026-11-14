@@ -12,6 +12,7 @@ import { Chevron, IconBookmark } from '../../components/icons';
 import { Schematic } from '../../components/molecules/Schematic';
 import { useRouteDetail } from '../../hooks/useRouteDetail';
 import { useT } from '../../i18n/useT';
+import { feedDownTitle } from '../../i18n/eta';
 import { useSaved } from '../../stores/saved';
 import type { Direction } from '../../types';
 import './routeDetail.css';
@@ -35,7 +36,7 @@ export default function RouteDetailPage() {
   const [toast, setToast] = useState<{ message: string } | null>(null);
 
   const direction: Direction = searchParams.get('dir') === 'b' ? 'b' : 'a';
-  const { data, isLoading, isStale, error, refetch } = useRouteDetail(id, direction);
+  const { data, isLoading, feed, feedDown, error, refetch } = useRouteDetail(id, direction);
 
   const flipDirection = useCallback(() => {
     const next: Direction = direction === 'a' ? 'b' : 'a';
@@ -132,7 +133,13 @@ export default function RouteDetailPage() {
           </div>
         )}
 
-        {noVehicles && !error && (
+        {feedDown && !error && (
+          <div className="route-detail__alerts">
+            <AlertBanner severity="warning" title={feedDownTitle(t, feed?.lastSuccessAt ?? null)} />
+          </div>
+        )}
+
+        {noVehicles && !error && !feedDown && (
           <div className="route-detail__alerts">
             <AlertBanner severity="info" title={t('route_detail.no_active_vehicles')} />
           </div>
@@ -140,11 +147,11 @@ export default function RouteDetailPage() {
 
         <SectionHeader
           title={sectionTitle}
-          live={!!data && !isStale && data.vehicles.length > 0}
+          live={!!data && !feedDown && data.vehicles.length > 0}
           serverTime={
             data
-              ? isStale
-                ? t('route_detail.last_update', { time: formatClock(data.serverTime) })
+              ? feedDown && feed?.lastSuccessAt
+                ? t('route_detail.last_update', { time: formatClock(feed.lastSuccessAt) })
                 : formatClock(data.serverTime)
               : undefined
           }
@@ -168,7 +175,7 @@ export default function RouteDetailPage() {
               stops={data.stops}
               vehicles={data.vehicles}
               vehicleColor={`var(--line-${data.route.mode})`}
-              stale={isStale}
+              stale={feedDown}
               onStopTap={stopId => navigate(`/stop/${encodeURIComponent(stopId)}`)}
             />
           )}

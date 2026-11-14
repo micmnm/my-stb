@@ -8,7 +8,8 @@ RUN dotnet publish src/MyStb.Api/MyStb.Api.csproj -c Release -o /app --no-restor
 FROM mcr.microsoft.com/dotnet/aspnet:10.0-alpine
 WORKDIR /app
 COPY --from=build /app .
-RUN mkdir -p /data
+RUN mkdir -p /data && chown $APP_UID /data
+USER $APP_UID
 ENV ASPNETCORE_URLS=http://+:8080
 ENV ConnectionStrings__Sqlite="Data Source=/data/mystb.db"
 EXPOSE 8080

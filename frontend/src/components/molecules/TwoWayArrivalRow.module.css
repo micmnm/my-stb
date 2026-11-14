@@ -84,6 +84,20 @@
 .etaNotLive { color: var(--fg-1); }
 .etaStale   { color: var(--fg-3); }
 
+.lastSeen {
+  font-size: var(--fs-sm);
+  font-weight: var(--fw-medium);
+}
+
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
 .terminus {
   font-size: var(--fs-lg);
   color: var(--fg-3);

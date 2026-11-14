@@ -14,7 +14,7 @@ export default defineConfig({
         navigateFallbackDenylist: [/^\/api\//],
         runtimeCaching: [
           {
-            urlPattern: /^https:\/\/[abc]\.tile\.openstreetmap\.org\/.*/i,
+            urlPattern: /^https:\/\/(?:[abc]\.)?tile\.openstreetmap\.org\/.*/i,
             handler: 'CacheFirst',
             options: {
               cacheName: 'osm-tiles',
@@ -22,10 +22,8 @@ export default defineConfig({
             },
           },
           {
-            // Static stop / route metadata: stale-while-revalidate.
-            urlPattern: ({ url }) =>
-              url.pathname.match(/^\/api\/stops\/[^/]+$/) !== null
-              || url.pathname.match(/^\/api\/routes\/[^/]+\/detail$/) !== null,
+            // Static stop metadata: stale-while-revalidate.
+            urlPattern: ({ url }) => url.pathname.match(/^\/api\/stops\/[^/]+$/) !== null,
             handler: 'StaleWhileRevalidate',
             options: {
               cacheName: 'stb-meta',
@@ -33,17 +31,13 @@ export default defineConfig({
             },
           },
           {
-            // Live arrivals + alerts: network-first with 3 s timeout, fall back to cache.
+            // Live data is never served from cache: a stale reply would look live.
             urlPattern: ({ url }) =>
               url.pathname.match(/^\/api\/stops\/[^/]+\/arrivals$/) !== null
+              || url.pathname.match(/^\/api\/routes\/[^/]+\/detail$/) !== null
               || url.pathname === '/api/alerts'
               || url.pathname === '/api/stops/arrivals/peek',
-            handler: 'NetworkFirst',
-            options: {
-              cacheName: 'stb-live',
-              networkTimeoutSeconds: 3,
-              expiration: { maxEntries: 100, maxAgeSeconds: 60 * 5 },
-            },
+            handler: 'NetworkOnly',
           },
         ],
       },

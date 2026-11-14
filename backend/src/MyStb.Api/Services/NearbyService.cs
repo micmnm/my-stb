@@ -22,7 +22,7 @@ public class NearbyService
 
     public List<NearbyStop> Find(IDbConnection db, double lat, double lng, double maxMeters, int limit)
     {
-        if (maxMeters <= 0 || maxMeters > 5000) maxMeters = 500;
+        if (maxMeters <= 0 || maxMeters > InputBounds.MaxRadiusMeters) maxMeters = 500;
         if (limit <= 0 || limit > 50) limit = 5;
 
         var bbox = GeoUtils.BoundingBox(lat, lng, maxMeters);

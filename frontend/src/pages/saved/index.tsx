@@ -8,7 +8,12 @@ import { Chevron, IconClose } from '../../components/icons';
 import { useStopArrivalPeek } from '../../hooks/useStopArrivalPeek';
 import { useT } from '../../i18n/useT';
 import {
+  getSaved,
+  mergeItems,
   migrateLegacyFavouritesIfPresent,
+  onSavedStorageError,
+  replaceAll,
+  sanitizeItems,
   type SavedItem,
   useSaved,
 } from '../../stores/saved';
@@ -70,14 +75,15 @@ function SavedStopRow({
   onDragEnd,
 }: SavedRowProps) {
   const t = useT();
-  const [draftName, setDraftName] = useState(item.nickname ?? item.name ?? '');
-  useEffect(() => {
-    setDraftName(item.nickname ?? item.name ?? '');
-  }, [item.nickname, item.name]);
+  // null = no pending edit; the input shows the stored name.
+  const [draft, setDraft] = useState<string | null>(null);
+  const draftName = draft ?? item.nickname ?? item.name ?? '';
+  const setDraftName = setDraft;
 
   const commit = () => {
     const v = draftName.trim();
     if (v && v !== (item.nickname ?? item.name)) onRename(v);
+    setDraft(null);
   };
 
   return (
@@ -106,7 +112,7 @@ function SavedStopRow({
           onBlur={commit}
           onKeyDown={e => {
             if (e.key === 'Enter') { commit(); (e.target as HTMLInputElement).blur(); }
-            if (e.key === 'Escape') setDraftName(item.nickname ?? item.name ?? '');
+            if (e.key === 'Escape') setDraft(null);
           }}
           placeholder={t('saved.rename_placeholder')}
           aria-label={t('saved.nickname')}
@@ -152,14 +158,14 @@ function SavedRouteRow({
   onDragEnd,
 }: Omit<SavedRowProps, 'peekArrivals' | 'unavailable'>) {
   const t = useT();
-  const [draftName, setDraftName] = useState(item.nickname ?? item.shortName ?? '');
-  useEffect(() => {
-    setDraftName(item.nickname ?? item.shortName ?? '');
-  }, [item.nickname, item.shortName]);
+  const [draft, setDraft] = useState<string | null>(null);
+  const draftName = draft ?? item.nickname ?? item.shortName ?? '';
+  const setDraftName = setDraft;
 
   const commit = () => {
     const v = draftName.trim();
     if (v && v !== (item.nickname ?? item.shortName)) onRename(v);
+    setDraft(null);
   };
 
   return (
@@ -191,7 +197,7 @@ function SavedRouteRow({
           onBlur={commit}
           onKeyDown={e => {
             if (e.key === 'Enter') { commit(); (e.target as HTMLInputElement).blur(); }
-            if (e.key === 'Escape') setDraftName(item.nickname ?? item.shortName ?? '');
+            if (e.key === 'Escape') setDraft(null);
           }}
           placeholder={t('saved.rename_placeholder')}
           aria-label={t('saved.nickname')}
@@ -221,11 +227,67 @@ function SavedRouteRow({
   );
 }
 
+const MAX_IMPORT_BYTES = 256 * 1024;
+
+function exportSaved(): void {
+  const now = new Date();
+  const payload = { app: 'mystb', version: 1, exportedAt: now.toISOString(), items: getSaved() };
+  const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `mystb-saved-${now.toISOString().slice(0, 10)}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+/** Returns the valid items, or null if the file isn't a v1 mystb export. */
+function parseImport(text: string): SavedItem[] | null {
+  try {
+    const p: unknown = JSON.parse(text);
+    if (!p || typeof p !== 'object') return null;
+    const o = p as { app?: unknown; version?: unknown; items?: unknown };
+    if (o.app !== 'mystb' || o.version !== 1 || !Array.isArray(o.items)) return null;
+    if (o.items.some(i => !i || typeof i !== 'object'
+      || ((i as { kind?: unknown }).kind !== 'stop' && (i as { kind?: unknown }).kind !== 'route')
+      || typeof (i as { id?: unknown }).id !== 'string')) return null;
+    return sanitizeItems(o.items);
+  } catch {
+    return null;
+  }
+}
+
 export default function SavedPage() {
   const t = useT();
   const navigate = useNavigate();
   const { stops, routes, remove, restore, update, reorder } = useSaved();
   const [editing, setEditing] = useState(false);
+  const [notice, setNotice] = useState<string | null>(null);
+  const [pendingImport, setPendingImport] = useState<SavedItem[] | null>(null);
+  const fileRef = useRef<HTMLInputElement | null>(null);
+
+  useEffect(() => onSavedStorageError(() => setNotice(t('saved.storage_full'))), [t]);
+
+  const handleFile = async (file: File | undefined) => {
+    if (!file) return;
+    if (file.size > MAX_IMPORT_BYTES) {
+      setNotice(t('saved.import_too_large'));
+      return;
+    }
+    const items = parseImport(await file.text());
+    if (!items) {
+      setNotice(t('saved.import_invalid'));
+      return;
+    }
+    setPendingImport(items);
+  };
+
+  const applyImport = (mode: 'merge' | 'replace') => {
+    if (!pendingImport) return;
+    if (mode === 'merge') mergeItems(pendingImport); else replaceAll(pendingImport);
+    setNotice(t('saved.import_done', { count: pendingImport.length }));
+    setPendingImport(null);
+  };
   const [pendingUndo, setPendingUndo] = useState<SavedItem | null>(null);
   const [drag, setDrag] = useState<{ kind: 'stop' | 'route'; from: number; over: number } | null>(null);
   const undoTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -368,6 +430,56 @@ export default function SavedPage() {
             </div>
           </section>
         )}
+
+        <section className="saved-page__portability">
+          <div className="saved-page__actions">
+            <button
+              type="button"
+              className="saved-page__action"
+              onClick={exportSaved}
+              disabled={isEmpty}
+            >
+              {t('saved.export')}
+            </button>
+            <button
+              type="button"
+              className="saved-page__action"
+              onClick={() => fileRef.current?.click()}
+            >
+              {t('saved.import')}
+            </button>
+            <input
+              ref={fileRef}
+              type="file"
+              accept="application/json,.json"
+              hidden
+              onChange={e => {
+                void handleFile(e.target.files?.[0]);
+                e.target.value = '';
+              }}
+            />
+          </div>
+          {pendingImport && (
+            <div className="saved-page__import" role="group">
+              <p>{t('saved.import_preview', { count: pendingImport.length })}</p>
+              <div className="saved-page__actions">
+                <button type="button" className="saved-page__action" onClick={() => applyImport('merge')}>
+                  {t('saved.import_merge')}
+                </button>
+                <button type="button" className="saved-page__action" onClick={() => applyImport('replace')}>
+                  {t('saved.import_replace')}
+                </button>
+                <button type="button" className="saved-page__action" onClick={() => setPendingImport(null)}>
+                  {t('saved.import_cancel')}
+                </button>
+              </div>
+            </div>
+          )}
+        </section>
+
+        <p className="saved-page__privacy">{t('saved.privacy')}</p>
+
+        {notice && <Toast message={notice} onDismiss={() => setNotice(null)} />}
 
         {pendingUndo && (
           <Toast

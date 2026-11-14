@@ -10,6 +10,19 @@
   "home.empty_saved": "Salvează stațiile pe care le folosești des.",
   "home.enable_location": "Activează locația",
   "home.see_more": "Vezi mai multe",
+  "home.peek_updated": "actualizat {time}",
+  "home.peek_error": "Nu am putut încărca sosirile.",
+
+  "eta.approx_min": "~{n} min",
+  "eta.approx_min_aria": "{n, plural, one {aproximativ # minut} few {aproximativ # minute} other {aproximativ # de minute}}",
+  "eta.min_unit": "min",
+  "eta.last_seen": "văzut acum {n} min",
+  "eta.last_seen_aria": "{n, plural, one {văzut acum # minut} few {văzut acum # minute} other {văzut acum # de minute}}",
+
+  "map.aria": "{n, plural, =0 {Hartă: niciun autobuz nu se apropie} one {Hartă: 1 autobuz se apropie} few {Hartă: # autobuze se apropie} other {Hartă: # de autobuze se apropie}}",
+  "map.dot_tooltip": "~{n} min · văzut acum {s}s",
+  "map.activate": "Atinge pentru a muta harta",
+  "map.lock": "Blochează harta",
 
   "search.placeholder": "Caută o stație, linie sau adresă",
   "search.recent": "Recente",
@@ -25,6 +38,7 @@
   "search.geocoder_unavailable": "Adresele nu sunt disponibile momentan.",
   "search.save_hint": "Atinge ca să salvezi.",
   "search.use_my_location": "Folosește locația mea",
+  "search.addresses_for": "Caută adrese pentru „{q}”",
 
   "stop_detail.arrivals": "Sosiri",
   "stop_detail.both_dirs": "ambele direcții",
@@ -105,10 +119,24 @@
   "saved.unavailable": "Indisponibil",
   "saved.unavailable_remove": "Șterge",
   "saved.rename_placeholder": "Poreclă",
+  "saved.export": "Exportă",
+  "saved.import": "Importă",
+  "saved.import_preview": "{count} elemente găsite în fișier.",
+  "saved.import_merge": "Îmbină",
+  "saved.import_replace": "Înlocuiește",
+  "saved.import_cancel": "Anulează",
+  "saved.import_invalid": "Fișierul nu este un export My STB valid.",
+  "saved.import_too_large": "Fișierul este prea mare (max. 256 KB).",
+  "saved.import_done": "{count} elemente importate.",
+  "saved.storage_full": "Nu s-a putut salva: spațiul de stocare este plin.",
+  "saved.privacy": "Numărători anonime de vizualizări prin GoatCounter, fără cookie-uri.",
 
   "errors.offline": "Fără conexiune. Afișăm ultimele date cunoscute.",
   "errors.retry": "Reîncearcă",
   "errors.feed_down": "STB nu răspunde. Reîncercăm automat.",
+  "errors.feed_down_since": "Poziții live indisponibile din {time}",
+  "errors.feed_down_unknown": "Poziții live indisponibile",
+  "errors.rate_limited": "Prea multe cereri, încearcă din nou în scurt timp.",
 
   "permissions.location_denied": "Activează locația pentru a vedea stațiile din apropiere."
 }

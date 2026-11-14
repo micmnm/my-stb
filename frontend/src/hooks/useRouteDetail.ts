@@ -1,15 +1,15 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { api } from '../api/client';
-import type { Direction, RouteDetailResponse } from '../types';
+import type { Direction, FeedHealth, RouteDetailResponse } from '../types';
 
 const POLL_MS = 15_000;
-const STALE_MS = 60_000;
 
 export interface UseRouteDetailResult {
   data: RouteDetailResponse | null;
   error: Error | null;
   isLoading: boolean;
-  isStale: boolean;
+  feed: FeedHealth | null;
+  feedDown: boolean;
   lastUpdated: number | null;
   refetch: () => void;
 }
@@ -76,7 +76,8 @@ export function useRouteDetail(routeId: string | undefined, direction: Direction
     };
   }, [routeId, direction, tick]);
 
-  const isStale = !!data && Date.now() - new Date(data.serverTime).getTime() > STALE_MS;
+  const feed = data?.feed ?? null;
+  const feedDown = feed?.status === 'down';
 
-  return { data, error, isLoading, isStale, lastUpdated, refetch };
+  return { data, error, isLoading, feed, feedDown, lastUpdated, refetch };
 }

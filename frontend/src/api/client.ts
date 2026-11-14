@@ -1,9 +1,8 @@
 import type {
   ArrivalsResponse,
   Direction,
-  GeocodingResult,
   NearbyStop,
-  PeekArrivals,
+  PeekResponse,
   PlanRequest,
   PlanResponse,
   RouteDetailResponse,
@@ -16,26 +15,44 @@ import type {
 } from '../types';
 
 const BASE_URL = import.meta.env.VITE_API_URL || '';
-const API_KEY = import.meta.env.VITE_API_KEY || '';
+
+export class ApiError extends Error {
+  readonly status: number;
+  constructor(status: number) {
+    super(`API error: ${status}`);
+    this.name = 'ApiError';
+    this.status = status;
+  }
+}
+
+const rateLimitListeners = new Set<() => void>();
+
+/** Called whenever the API answers 429. */
+export function onRateLimited(fn: () => void): () => void {
+  rateLimitListeners.add(fn);
+  return () => { rateLimitListeners.delete(fn); };
+}
+
+function checkOk(res: Response): void {
+  if (res.ok) return;
+  if (res.status === 429) rateLimitListeners.forEach(fn => fn());
+  throw new ApiError(res.status);
+}
 
 async function get<T>(path: string, signal?: AbortSignal): Promise<T> {
-  const headers: Record<string, string> = {};
-  if (API_KEY) headers['X-Api-Key'] = API_KEY;
-  const res = await fetch(`${BASE_URL}${path}`, { headers, signal });
-  if (!res.ok) throw new Error(`API error: ${res.status}`);
+  const res = await fetch(`${BASE_URL}${path}`, { signal });
+  checkOk(res);
   return res.json();
 }
 
 async function postJson<TBody, TResp>(path: string, body: TBody, signal?: AbortSignal): Promise<TResp> {
-  const headers: Record<string, string> = { 'Content-Type': 'application/json' };
-  if (API_KEY) headers['X-Api-Key'] = API_KEY;
   const res = await fetch(`${BASE_URL}${path}`, {
     method: 'POST',
-    headers,
+    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(body),
     signal,
   });
-  if (!res.ok) throw new Error(`API error: ${res.status}`);
+  checkOk(res);
   return res.json();
 }
 
@@ -46,22 +63,6 @@ export const api = {
 
   getVehicles(routeId: string): Promise<Vehicle[]> {
     return get(`/api/vehicles?routeId=${routeId}`);
-  },
-
-  /**
-   * Legacy address-only call kept for the /legacy map UX. Backed by the new
-   * unified search endpoint, then projected to the historic GeocodingResult shape.
-   */
-  async searchPlaces(query: string): Promise<GeocodingResult[]> {
-    const resp = await get<SearchResponse>(
-      `/api/search?q=${encodeURIComponent(query)}&types=addresses`,
-    );
-    return resp.addresses.map(a => ({
-      displayName: a.label,
-      lat: a.lat,
-      lng: a.lng,
-      type: a.type,
-    }));
   },
 
   search(
@@ -104,8 +105,22 @@ export const api = {
     return get(`/api/stops/nearby?${qs}`, signal);
   },
 
-  peekArrivals(stopIds: string[], signal?: AbortSignal): Promise<PeekArrivals> {
-    return postJson('/api/stops/arrivals/peek', { stopIds }, signal);
+  /** Server caps: 1..20 stopIds, 0..50 routeIds (400 otherwise), so stops go in batches of 20. Empty routeIds = no route filter. */
+  async peekArrivals(stopIds: string[], routeIds: string[] = [], signal?: AbortSignal): Promise<PeekResponse> {
+    const routes = routeIds.slice(0, 50);
+    const batches: string[][] = [];
+    for (let i = 0; i < stopIds.length; i += 20) batches.push(stopIds.slice(i, i + 20));
+    if (batches.length === 0) batches.push([]);
+    const responses = await Promise.all(batches.map((ids) =>
+      postJson<object, PeekResponse>(
+        '/api/stops/arrivals/peek',
+        routes.length > 0 ? { stopIds: ids, routeIds: routes } : { stopIds: ids },
+        signal,
+      )));
+    return {
+      feed: responses[0].feed,
+      stops: Object.assign({}, ...responses.map((r) => r.stops)),
+    };
   },
 
   plan(request: PlanRequest, signal?: AbortSignal): Promise<PlanResponse> {

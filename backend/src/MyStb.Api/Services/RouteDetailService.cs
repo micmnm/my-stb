@@ -7,7 +7,6 @@ namespace MyStb.Api.Services;
 public class RouteDetailService
 {
     private const double AverageSpeedMps = 5.0;
-    private const int LiveThresholdSeconds = 90;
 
     public record RouteSummary(string Id, string ShortName, string LongName, int RouteType, string Mode);
     public record Terminus(string StopId, string Name);
@@ -27,7 +26,9 @@ public class RouteDetailService
         long UpdatedAt,
         bool IsLive,
         string? NextStopId,
-        int? NextStopEtaSeconds);
+        int? NextStopEtaSeconds,
+        int LastSeenSeconds,
+        string Freshness);
     public record RouteDetailResponse(
         RouteSummary Route,
         Terminus? TerminusA,
@@ -36,11 +37,12 @@ public class RouteDetailService
         List<SchematicStopDto> Stops,
         List<VehicleDto> Vehicles,
         List<ServiceAlert> Alerts,
-        string ServerTime);
+        string ServerTime,
+        FeedStatus? Feed = null);
 
     private record RouteRow(string Id, string ShortName, string LongName, long RouteType);
     private record StopRow(string Id, string Name, double Lat, double Lng, long Sequence);
-    private record VehicleRow(string Id, string RouteId, double Lat, double Lng, long DirectionId, long UpdatedAt);
+    private record VehicleRow(string Id, string RouteId, double Lat, double Lng, long DirectionId, long Timestamp, long UpdatedAt);
 
     public RouteDetailResponse? Get(IDbConnection db, string routeId, string direction, IAlertsProvider alerts, DateTimeOffset now)
     {
@@ -77,16 +79,17 @@ public class RouteDetailService
         Terminus? terminusA = stopsForward.Count > 0 ? new Terminus(stopsForward[^1].Id, stopsForward[^1].Name) : null;
         Terminus? terminusB = stopsReverse.Count > 0 ? new Terminus(stopsReverse[^1].Id, stopsReverse[^1].Name) : null;
 
+        var nowUnix = now.ToUnixTimeSeconds();
+
         var vehicles = db.Query<VehicleRow>(
-            """
+            $"""
             SELECT id AS Id, route_id AS RouteId, lat AS Lat, lng AS Lng,
-                   direction_id AS DirectionId, updated_at AS UpdatedAt
+                   direction_id AS DirectionId, timestamp AS Timestamp, updated_at AS UpdatedAt
             FROM vehicles
             WHERE route_id = @RouteId AND direction_id = @DirectionId
+              AND {VehicleFreshness.ReportedAtSql} >= @Since
             """,
-            new { RouteId = routeId, DirectionId = dirId }).ToList();
-
-        var nowUnix = now.ToUnixTimeSeconds();
+            new { RouteId = routeId, DirectionId = dirId, Since = VehicleFreshness.VisibleSince(nowUnix) }).ToList();
 
         var schematic = stops
             .Select(s => new SchematicStopDto(
@@ -110,6 +113,9 @@ public class RouteDetailService
                 var meters = GeoUtils.HaversineMeters(v.Lat, v.Lng, nextStop.Lat, nextStop.Lng);
                 nextEta = Math.Max(0, (int)Math.Round(meters / AverageSpeedMps));
             }
+            var reported = VehicleFreshness.ReportedAt(v.Timestamp, v.UpdatedAt);
+            var freshness = VehicleFreshness.Of(reported, nowUnix);
+            if (freshness == Freshness.Expired) continue;
             vehicleDtos.Add(new VehicleDto(
                 Id: v.Id,
                 RouteId: v.RouteId,
@@ -118,9 +124,11 @@ public class RouteDetailService
                 DirectionId: (int)v.DirectionId,
                 Direction: v.DirectionId == 0 ? "a" : "b",
                 UpdatedAt: v.UpdatedAt,
-                IsLive: nowUnix - v.UpdatedAt <= LiveThresholdSeconds,
+                IsLive: freshness == Freshness.Live,
                 NextStopId: nextStopId,
-                NextStopEtaSeconds: nextEta));
+                NextStopEtaSeconds: nextEta,
+                LastSeenSeconds: VehicleFreshness.AgeSeconds(reported, nowUnix),
+                Freshness: VehicleFreshness.ToWire(freshness)));
         }
 
         var routeAlerts = alerts.GetActiveForRoute(routeId, now)
